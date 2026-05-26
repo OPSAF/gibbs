@@ -1,0 +1,19 @@
+{
+  "name": "Gibbs采样可视化平台",
+  "description": "基于Flask的Gibbs采样算法可视化分析工具",
+  "repository": "https://github.com/yourusername/yourrepo",
+  "logo": "https://cdn.iconfinder.com/data/icons/machine-learning-19/64/mcmc-gibbs-sampling-algorithm-512.png",
+  "keywords": ["flask", "python", "mcmc", "gibbs-sampling", "visualization"],
+  "image": "heroku/python",
+  "addons": [],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "FLASK_APP": "app.py",
+    "FLASK_DEBUG": "false",
+    "PYTHONUNBUFFERED": "true"
+  }
+}
