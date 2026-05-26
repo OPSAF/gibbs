@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIBBS Studio | 高级采样分析平台</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            /* Bili-Tube 灵感配色矩阵 */
+            --bg-global: #f6f7f9;
+            --bg-card: #ffffff;
+            --brand-blue: #00aeec;        /* B站主色 */
+            --brand-pink: #ff6699;        /* B站副色 */
+            --brand-red: #ff0000;         /* YouTube 红 */
+            --text-main: #18191c;
+            --text-body: #61666d;
+            --text-muted: #9499a0;
+            --border-color: #e3e5e7;
+            
+            /* 动效缓动曲线 */
+            --ease-out: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --transition: all 0.4s var(--ease-out);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-global);
+            color: var(--text-body);
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* ================= KV (Key Visual) 主视觉舞台 ================= */
+        .kv-stage {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* 纯CSS弥散光背景，CPU零压力 */
+        .kv-glow {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 174, 236, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 102, 153, 0.15) 0%, transparent 40%);
+            z-index: 0;
+        }
+
+        .kv-content {
+            position: relative;
+            z-index: 2;
+            padding: 0 20px;
+        }
+
+        .kv-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            line-height: 1;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #18191c, #61666d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: slideUp 0.8s var(--ease-out) both;
+        }
+
+        .kv-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 30px;
+            font-weight: 400;
+            animation: slideUp 0.8s var(--ease-out) 0.1s both;
+        }
+
+        /* ================= 商业导航栏 ================= */
+        nav {
+            height: 64px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 40px;
+        }
+
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; color: var(--text-main); font-size: 1.2rem;
+        }
+        
+        .logo-dot {
+            width: 12px; height: 12px; border-radius: 3px;
+            background: var(--brand-blue); box-shadow: 0 0 10px var(--brand-blue);
+        }
+
+        /* ================= 布局容器与卡片 ================= */
+        .container {
+            max-width: 1400px;
+            margin: -60px auto 0; /* 向上偏移产生叠层感 */
+            padding: 0 24px 60px;
+            position: relative; z-index: 10;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 32px;
+            margin-bottom: 24px;
+            transition: var(--transition);
+            animation: slideUp 0.8s var(--ease-out) 0.2s both;
+        }
+
+        .panel:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.05);
+        }
+
+        .panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .panel-header h2 {
+            font-size: 1.4rem; font-weight: 700; color: var(--text-main);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ================= 艺术化表单控件 ================= */
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f6f7f8;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        .param-group:hover {
+            background: #ffffff;
+            border-color: var(--brand-blue);
+        }
+
+        .param-group h3 {
+            font-size: 0.9rem; font-weight: 700; color: var(--text-main);
+            margin-bottom: 16px; border-left: 4px solid var(--brand-blue);
+            padding-left: 10px;
+        }
+
+        .param-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        input, select {
+            width: 110px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        input:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.1);
+            outline: none;
+        }
+
+        /* ================= 按钮体系 ================= */
+        .btn-group {
+            display: flex; gap: 12px; margin-top: 30px;
+            padding-top: 25px; border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--brand-blue);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 174, 236, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-primary-hover);
+            transform: scale(1.03);
+        }
+
+        .btn-secondary {
+            background: #f1f2f3;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover { background: #e3e5e7; }
+
+        /* ================= 数据可视化看板 ================= */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: #f6f7f8;
+            padding: 20px;
+            border-radius: 12px;
+            transition: var(--transition);
+        }
+
+        .metric-card:hover { background: #ffffff; border: 1px solid var(--border-color); }
+
+        .metric-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+
+        .metric-value { 
+            font-size: 1.6rem; font-weight: 700; color: var(--text-main); 
+            font-family: 'JetBrains Mono', monospace; margin-top: 4px;
+        }
+
+        .tabs {
+            display: inline-flex; background: #f1f2f3; padding: 4px; border-radius: 12px; margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 8px 24px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .tab.active { background: #ffffff; color: var(--brand-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+        }
+
+        .chart-box {
+            background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color);
+        }
+
+        /* ================= 关键动画 ================= */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            display: none; padding: 20px; color: var(--brand-blue); font-weight: 700; text-align: center;
+        }
+        .loading.active { display: block; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        @media (max-width: 768px) {
+            .kv-title { font-size: 2.5rem; }
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-logo">
+            <div class="logo-dot"></div>
+            GIBBS STUDIO
+        </div>
+        <div style="display:flex; gap:20px;">
+            <button class="btn btn-secondary" style="padding: 8px 16px;" onclick="loadPresets()">读取预设</button>
+            <div style="width:36px; height:36px; border-radius:50%; background:#e3e5e7; border:1px solid var(--border-color);"></div>
+        </div>
+    </nav>
+
+    <section class="kv-stage">
+        <div class="kv-glow"></div>
+        <div class="kv-content">
+            <h1 class="kv-title">Gibbs Algorithm</h1>
+            <p class="kv-subtitle">工业级高维马尔可夫链蒙特卡洛（MCMC）采样引擎，通过交互式可视化揭示高维联合分布的收敛真谛。</p>
+            <div style="display:flex; gap:16px; justify-content:center;">
+                <button class="btn btn-primary" onclick="generateData()">开始仿真采样</button>
+                <button class="btn btn-secondary" onclick="exportToCSV()">导出CSV报告</button>
+            </div>
+        </div>
+    </section>
+
+    <main class="container">
+        
+        <div class="panel">
+            <div class="panel-header">
+                <h2>仿真动力学参数</h2>
+                <select id="preset-select" onchange="applyPreset()" style="width: 200px;">
+                    <option value="">选取官方模型模板...</option>
+                </select>
+            </div>
+
+            <div class="params-grid">
+                <div class="param-group">
+                    <h3>X | Y, Z 条件分布</h3>
+                    <div class="param-row"><label>a (Y系数)</label><input type="number" id="param_x0" value="0.5" step="0.05"></div>
+                    <div class="param-row"><label>b (Z系数)</label><input type="number" id="param_x1" value="0.3" step="0.05"></div>
+                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_x" value="0.8" step="0.05"></div>
+                    <div class="param-row">
+                        <label>基底分布</label>
+                        <select id="dist_x"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
+                    </div>
+                </div>
+
+                <div class="param-group">
+                    <h3>Y | X, Z 条件分布</h3>
+                    <div class="param-row"><label>a (X系数)</label><input type="number" id="param_y0" value="0.5" step="0.05"></div>
+                    <div class="param-row"><label>b (Z系数)</label><input type="number" id="param_y1" value="0.4" step="0.05"></div>
+                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_y" value="0.7" step="0.05"></div>
+                    <div class="param-row">
+                        <label>基底分布</label>
+                        <select id="dist_y"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
+                    </div>
+                </div>
+
+                <div class="param-group">
+                    <h3>Z | X, Y 条件分布</h3>
+                    <div class="param-row"><label>a (X系数)</label><input type="number" id="param_z0" value="0.3" step="0.05"></div>
+                    <div class="param-row"><label>b (Y系数)</label><input type="number" id="param_z1" value="0.4" step="0.05"></div>
+                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_z" value="0.9" step="0.05"></div>
+                    <div class="param-row">
+                        <label>基底分布</label>
+                        <select id="dist_z"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
+                    </div>
+                </div>
+
+                <div class="param-group">
+                    <h3>MCMC 链控设置</h3>
+                    <div class="param-row">
+                        <label>起始向量</label>
+                        <div style="display:flex; gap:4px;">
+                            <input type="number" id="init_x" value="1.0" style="width:35px; padding:4px;">
+                            <input type="number" id="init_y" value="2.0" style="width:35px; padding:4px;">
+                            <input type="number" id="init_z" value="2.0" style="width:35px; padding:4px;">
+                        </div>
+                    </div>
+                    <div class="param-row"><label>迭代总步数</label><input type="number" id="iterations" value="10000"></div>
+                    <div class="param-row"><label>老化步数</label><input type="number" id="burn_in" value="1000"></div>
+                    <div class="param-row"><label>变稀 Thinning</label><input type="number" id="thinning" value="1"></div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="loadHistoryList()">分析历史归档</button>
+                <button class="btn btn-secondary" onclick="loadExistingData()">同步最新快照</button>
+                <div style="flex-grow:1;"></div>
+                <button class="btn btn-primary" onclick="generateData()">开始演化采样</button>
+            </div>
+            
+            <div class="loading" id="loading">计算集群正处理高维链演化，请稍候...</div>
+            <div id="error" style="color:var(--brand-red); font-size:0.85rem; margin-top:10px; display:none;"></div>
+        </div>
+
+        <div class="panel" id="resultsPanel" style="display:none;">
+            <div class="panel-header"><h2>平稳分布矩估计分析</h2></div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div class="metric-label">有效总样本</div><div class="metric-value" id="nSamples">-</div></div>
+                <div class="metric-card"><div class="metric-label">E(X) 均值</div><div class="metric-value" style="color:var(--brand-blue);" id="meanX">-</div></div>
+                <div class="metric-card"><div class="metric-label">E(Y) 均值</div><div class="metric-value" style="color:var(--brand-pink);" id="meanY">-</div></div>
+                <div class="metric-card"><div class="metric-label">E(Z) 均值</div><div class="metric-value" style="color:#af52de;" id="meanZ">-</div></div>
+                <div class="metric-card"><div class="metric-label">ESS 采样效能 (X)</div><div class="metric-value" id="essX">-</div></div>
+                <div class="metric-card"><div class="metric-label">ESS 采样效能 (Y)</div><div class="metric-value" id="essY">-</div></div>
+            </div>
+        </div>
+
+        <div class="panel" id="chartsPanel" style="display:none;">
+            <div class="panel-header"><h2>多维诊断诊断视图</h2></div>
+            <div class="tabs">
+                <div class="tab active" onclick="showVariable('X')">维度 X 探针</div>
+                <div class="tab" onclick="showVariable('Y')">维度 Y 探针</div>
+                <div class="tab" onclick="showVariable('Z')">维度 Z 探针</div>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-box"><canvas id="trajectoryChart"></canvas></div>
+                <div class="chart-box"><canvas id="histogramChart"></canvas></div>
+                <div class="chart-box"><canvas id="autocorrChart"></canvas></div>
+                <div class="chart-box"><canvas id="jointChart"></canvas></div>
+            </div>
+            <div class="chart-box" style="margin-top:24px;">
+                <canvas id="allTrajectoriesChart"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentData = null;
+        let charts = {};
+        let currentVar = 'X';
+        let presets = {};
+
+        // 商业化图表默认配置
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.color = '#9499a0';
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.boxWidth = 8;
+        Chart.defaults.borderColor = 'rgba(227, 229, 231, 0.5)';
+
+        // ================= 业务逻辑函数 =================
+
+        async function loadPresets() {
+            try {
+                const response = await fetch('/api/presets');
+                presets = await response.json();
+                const select = document.getElementById('preset-select');
+                select.innerHTML = '<option value="">选取官方模型模板...</option>';
+                Object.entries(presets).forEach(([key, preset]) => {
+                    const option = document.createElement('option');
+                    option.value = key; option.textContent = preset.name;
+                    select.appendChild(option);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function applyPreset() {
+            const presetKey = document.getElementById('preset-select').value;
+            if (!presetKey || !presets[presetKey]) return;
+            const p = presets[presetKey];
+            const mapping = {
+                'param_x0': p.param_x[0], 'param_x1': p.param_x[1], 'std_x': p.param_x[2],
+                'param_y0': p.param_y[0], 'param_y1': p.param_y[1], 'std_y': p.param_y[2],
+                'param_z0': p.param_z[0], 'param_z1': p.param_z[1], 'std_z': p.param_z[2],
+                'init_x': p.init_values[0], 'init_y': p.init_values[1], 'init_z': p.init_values[2],
+                'iterations': p.iterations, 'burn_in': p.burn_in, 'thinning': p.thinning
+            };
+            Object.entries(mapping).forEach(([id, val]) => document.getElementById(id).value = val);
+        }
+
+        async function generateData() {
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('error').style.display = 'none';
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(getParams())
+                });
+                if (!response.ok) throw new Error('采样引擎响应异常');
+                currentData = await response.json();
+                displayResults(currentData);
+            } catch (e) {
+                document.getElementById('error').textContent = '⚠️ 失败: ' + e.message;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function getParams() {
+            return {
+                param_x: [parseFloat(document.getElementById('param_x0').value), parseFloat(document.getElementById('param_x1').value), parseFloat(document.getElementById('std_x').value)],
+                param_y: [parseFloat(document.getElementById('param_y0').value), parseFloat(document.getElementById('param_y1').value), parseFloat(document.getElementById('std_y').value)],
+                param_z: [parseFloat(document.getElementById('param_z0').value), parseFloat(document.getElementById('param_z1').value), parseFloat(document.getElementById('std_z').value)],
+                init_values: [parseFloat(document.getElementById('init_x').value), parseFloat(document.getElementById('init_y').value), parseFloat(document.getElementById('init_z').value)],
+                iterations: parseInt(document.getElementById('iterations').value),
+                burn_in: parseInt(document.getElementById('burn_in').value),
+                thinning: parseInt(document.getElementById('thinning').value),
+                random_seed: null,
+                dist_types: [document.getElementById('dist_x').value, document.getElementById('dist_y').value, document.getElementById('dist_z').value]
+            };
+        }
+
+        // --- 同步之前的降采样逻辑以降低CPU负载 ---
+
+        function displayResults(data) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('chartsPanel').style.display = 'block';
+            document.getElementById('nSamples').textContent = data.n_samples.toLocaleString();
+            document.getElementById('meanX').textContent = data.statistics.mean[0].toFixed(4);
+            document.getElementById('meanY').textContent = data.statistics.mean[1].toFixed(4);
+            document.getElementById('meanZ').textContent = data.statistics.mean[2].toFixed(4);
+            if (data.effective_sample_sizes) {
+                document.getElementById('essX').textContent = Math.round(data.effective_sample_sizes[0]).toLocaleString();
+                document.getElementById('essY').textContent = Math.round(data.effective_sample_sizes[1]).toLocaleString();
+            }
+            createCharts(data.samples, data.diagnostics);
+        }
+
+        function showVariable(varName) {
+            currentVar = varName;
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.includes(varName)));
+            updateCharts(currentData.samples, currentData.diagnostics);
+        }
+
+        function createCharts(samples, diagnostics) {
+            Object.values(charts).forEach(c => c.destroy());
+            charts = {};
+            updateCharts(samples, diagnostics);
+            createAllTrajectoriesChart(samples);
+        }
+
+        function updateCharts(samples, diagnostics) {
+            const varIndex = {X: 0, Y: 1, Z: 2}[currentVar];
+            const varData = samples.map(s => s[varIndex]);
+            const themeColors = { X: '#00aeec', Y: '#ff6699', Z: '#af52de' };
+            const activeColor = themeColors[currentVar];
+
+            if (charts.trajectory) charts.trajectory.destroy();
+            if (charts.histogram) charts.histogram.destroy();
+            if (charts.autocorr) charts.autocorr.destroy();
+            if (charts.joint) charts.joint.destroy();
+
+            // 1. 轨迹图（降采样1000点）
+            const trajStep = Math.max(1, Math.floor(varData.length / 1000));
+            const sampledTraj = varData.filter((_, i) => i % trajStep === 0);
+            charts.trajectory = new Chart(document.getElementById('trajectoryChart'), {
+                type: 'line',
+                data: {
+                    labels: sampledTraj.map((_, i) => i * trajStep),
+                    datasets: [{ label: `Chain Trace (${currentVar})`, data: sampledTraj, borderColor: activeColor, borderWidth: 1, pointRadius: 0, fill: false }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: false }
+            });
+
+            // 2. 直方图
+            const binCount = 30;
+            const min = Math.min(...varData), max = Math.max(...varData);
+            const binWidth = (max - min) / binCount;
+            const histData = Array(binCount).fill(0);
+            varData.forEach(v => { const idx = Math.min(Math.floor((v - min) / binWidth), binCount - 1); if(idx >= 0) histData[idx]++; });
+            charts.histogram = new Chart(document.getElementById('histogramChart'), {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: binCount}, (_, i) => (min + i * binWidth).toFixed(1)),
+                    datasets: [{ label: 'Density', data: histData.map(h => h / (varData.length * binWidth)), backgroundColor: activeColor + '33', borderColor: activeColor, borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: false }
+            });
+
+            // 3. ACF
+            const acf = diagnostics && diagnostics[varIndex] ? diagnostics[varIndex].autocorrelation.slice(0, 30) : [];
+            charts.autocorr = new Chart(document.getElementById('autocorrChart'), {
+                type: 'bar',
+                data: {
+                    labels: acf.map((_, i) => i),
+                    datasets: [{ label: 'ACF', data: acf, backgroundColor: activeColor, barPercentage: 0.5 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: false }
+            });
+
+            // 4. 联合散点图
+            const otherIdx = [0, 1, 2].filter(i => i !== varIndex)[0];
+            const scatStep = Math.max(1, Math.floor(varData.length / 800));
+            const scatData = varData.filter((_, i) => i % scatStep === 0).map((v, i) => ({x: v, y: samples.map(s => s[otherIdx])[i * scatStep]}));
+            charts.joint = new Chart(document.getElementById('jointChart'), {
+                type: 'scatter',
+                data: { datasets: [{ label: `${currentVar} vs ${['X','Y','Z'][otherIdx]}`, data: scatData, backgroundColor: activeColor + '44' }] },
+                options: { responsive: true, maintainAspectRatio: false, animation: false }
+            });
+        }
+
+        function createAllTrajectoriesChart(samples) {
+            const ctx = document.getElementById('allTrajectoriesChart').getContext('2d');
+            const step = Math.max(1, Math.floor(samples.length / 1000));
+            if (charts.allTrajectories) charts.allTrajectories.destroy();
+            charts.allTrajectories = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 1000}, (_, i) => i * step),
+                    datasets: [
+                        { label: 'X', data: samples.map(s => s[0]).filter((_, i) => i % step === 0), borderColor: '#00aeec', borderWidth: 1, pointRadius: 0 },
+                        { label: 'Y', data: samples.map(s => s[1]).filter((_, i) => i % step === 0), borderColor: '#ff6699', borderWidth: 1, pointRadius: 0 },
+                        { label: 'Z', data: samples.map(s => s[2]).filter((_, i) => i % step === 0), borderColor: '#af52de', borderWidth: 1, pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: false }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPresets);
+    </script>
+</body>
+</html>
