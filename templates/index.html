@@ -111,6 +111,24 @@
             background: var(--brand-blue); box-shadow: 0 0 10px var(--brand-blue);
         }
 
+        .github-link {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 16px;
+            background: #18191c;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .github-link:hover {
+            background: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
         /* ================= 布局容器与卡片 ================= */
         .container {
             max-width: 1400px;
@@ -297,9 +315,14 @@
             <div class="logo-dot"></div>
             GIBBS STUDIO
         </div>
-        <div style="display:flex; gap:20px;">
+        <div style="display:flex; gap:20px; align-items:center;">
             <button class="btn btn-secondary" style="padding: 8px 16px;" onclick="loadPresets()">读取预设</button>
-            <div style="width:36px; height:36px; border-radius:50%; background:#e3e5e7; border:1px solid var(--border-color);"></div>
+            <a href="https://github.com/OPSAF/gibbs" target="_blank" rel="noopener noreferrer" class="github-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                <span>源码</span>
+            </a>
         </div>
     </nav>
 
@@ -417,6 +440,64 @@
         </div>
 
     </main>
+
+    <footer style="background:#ffffff; border-top:1px solid var(--border-color); padding:40px 24px; margin-top:60px;">
+        <div style="max-width:1400px; margin:0 auto;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:40px;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                        <div class="logo-dot"></div>
+                        <span style="font-weight:700; color:var(--text-main);">GIBBS STUDIO</span>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:0.85rem; line-height:1.6;">
+                        工业级高维马尔可夫链蒙特卡洛采样引擎，通过交互式可视化揭示高维联合分布的收敛真谛。
+                    </p>
+                </div>
+                <div>
+                    <h4 style="font-weight:700; color:var(--text-main); margin-bottom:16px;">项目链接</h4>
+                    <ul style="list-style:none; padding:0;">
+                        <li style="margin-bottom:10px;">
+                            <a href="https://github.com/OPSAF/gibbs" target="_blank" rel="noopener noreferrer" style="color:var(--text-body); text-decoration:none; font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                                GitHub 仓库
+                            </a>
+                        </li>
+                        <li style="margin-bottom:10px;">
+                            <a href="https://github.com/OPSAF/gibbs/issues" target="_blank" rel="noopener noreferrer" style="color:var(--text-body); text-decoration:none; font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7.5 19l-4 1 1-4L16.5 3.5z"/>
+                                </svg>
+                                问题反馈
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/OPSAF/gibbs/pulls" target="_blank" rel="noopener noreferrer" style="color:var(--text-body); text-decoration:none; font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 18a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3z"/>
+                                    <path d="M16 3v12M8 18v-6M12 3v9"/>
+                                </svg>
+                                贡献代码
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-weight:700; color:var(--text-main); margin-bottom:16px;">技术栈</h4>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <span style="background:#f1f2f3; padding:4px 12px; border-radius:20px; font-size:0.75rem; color:var(--text-body);">Flask</span>
+                        <span style="background:#f1f2f3; padding:4px 12px; border-radius:20px; font-size:0.75rem; color:var(--text-body);">NumPy</span>
+                        <span style="background:#f1f2f3; padding:4px 12px; border-radius:20px; font-size:0.75rem; color:var(--text-body);">Chart.js</span>
+                        <span style="background:#f1f2f3; padding:4px 12px; border-radius:20px; font-size:0.75rem; color:var(--text-body);">Python</span>
+                    </div>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--border-color); margin-top:30px; padding-top:20px; text-align:center; color:var(--text-muted); font-size:0.8rem;">
+                <p>&copy; 2024 Gibbs Sampling Visualization Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 
     <script>
         let currentData = null;
