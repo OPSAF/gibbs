@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gibbs Studio | 操作文档</title>
+    <style>
+        :root {
+            --bg: #f3f5f7;
+            --ink: #10141f;
+            --text: #4e5968;
+            --muted: #8994a5;
+            --line: #dce3ed;
+            --blue: #0f84d8;
+            --teal: #00a88f;
+            --pink: #e65d86;
+            --violet: #7257c8;
+            --gold: #c28a18;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: linear-gradient(180deg, #eef3f7 0, #f7f8fa 120px, var(--bg) 100%);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 1.7;
+        }
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            border-bottom: 1px solid rgba(220, 227, 237, 0.82);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(18px);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--ink);
+            font-weight: 900;
+        }
+        .brand-mark {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, var(--blue) 0 34%, transparent 34%),
+                        linear-gradient(225deg, var(--pink) 0 34%, transparent 34%),
+                        linear-gradient(45deg, var(--teal) 0 40%, transparent 40%),
+                        #121826;
+        }
+        .btn {
+            min-height: 38px;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            padding: 8px 16px;
+            cursor: pointer;
+            background: var(--blue);
+            color: #fff;
+            font-weight: 800;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(15, 132, 216, 0.3);
+        }
+        .shell {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 28px 60px;
+        }
+        h1 { color: var(--ink); font-size: 32px; margin-bottom: 8px; }
+        h2 { color: var(--ink); font-size: 22px; margin-top: 36px; padding-bottom: 8px; border-bottom: 2px solid var(--line); }
+        h3 { color: var(--ink); font-size: 18px; margin-top: 28px; }
+        h4 { color: var(--text); font-size: 16px; margin-top: 20px; }
+        p { margin: 12px 0; }
+        ul, ol { padding-left: 24px; }
+        li { margin: 8px 0; }
+        code, pre {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #121826;
+            color: #e6edf3;
+            border-radius: 6px;
+        }
+        code {
+            padding: 2px 6px;
+            font-size: 0.9em;
+        }
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            text-align: left;
+        }
+        th {
+            background: rgba(15, 132, 216, 0.06);
+            font-weight: 800;
+            color: var(--ink);
+        }
+        tr:hover td { background: rgba(15, 132, 216, 0.04); }
+        .formula {
+            background: linear-gradient(135deg, #1a1f35, #242a42);
+            color: #e6edf3;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+        .note {
+            background: rgba(194, 138, 24, 0.08);
+            border-left: 4px solid var(--gold);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 16px 0;
+        }
+        .tip {
+            background: rgba(0, 168, 143, 0.08);
+            border-left: 4px solid var(--teal);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 16px 0;
+        }
+        .warning {
+            background: rgba(230, 93, 134, 0.08);
+            border-left: 4px solid var(--pink);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 16px 0;
+        }
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+        .nav-links a {
+            padding: 8px 14px;
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            background: var(--blue);
+            color: #fff;
+        }
+        .dist-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 16px;
+            background: #fff;
+            transition: box-shadow 0.2s;
+        }
+        .dist-card:hover { box-shadow: 0 8px 24px rgba(25, 35, 55, 0.08); }
+        .dist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .dist-name {
+            font-weight: 900;
+            color: var(--ink);
+            font-size: 16px;
+        }
+        .dist-kind {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(15, 132, 216, 0.1);
+            color: var(--blue);
+        }
+        .dist-formula {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--violet);
+            margin: 8px 0;
+        }
+        .param-table {
+            font-size: 13px;
+            margin-top: 12px;
+        }
+        .param-table th, .param-table td {
+            padding: 8px 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="brand"><span class="brand-mark"></span><span>Gibbs Studio</span></div>
+        <a class="btn" href="/">返回工作台</a>
+    </nav>
+
+    <main class="shell">
+        <h1>Gibbs Studio 操作文档</h1>
+        <p style="color: var(--muted); font-size: 15px;">详细说明 Gibbs 采样算法的计算原理、参数含义和使用方法</p>
+
+        <nav class="nav-links">
+            <a href="#intro">简介</a>
+            <a href="#algorithm">算法原理</a>
+            <a href="#params">参数说明</a>
+            <a href="#distributions">分布详解</a>
+            <a href="#examples">使用示例</a>
+        </nav>
+
+        <section id="intro">
+            <h2>1. 简介</h2>
+            <p>Gibbs Studio 是一个交互式的 Gibbs 采样可视化工具，用于展示马尔可夫链蒙特卡洛（MCMC）方法在高维后验推断中的应用。</p>
+            
+            <h3>1.1 什么是 Gibbs 采样？</h3>
+            <p>Gibbs 采样是 MCMC 中最常用的算法之一，它通过在给定其他变量值的条件下，依次从每个变量的条件分布中采样来生成样本。这使得我们能够从复杂的高维联合分布中抽取样本，即使这个分布没有解析形式。</p>
+
+            <h3>1.2 核心思想</h3>
+            <p>对于一个 <code>d</code> 维的联合分布 <code>p(X₁, X₂, ..., X_d)</code>，Gibbs 采样通过迭代地从条件分布 <code>p(X_i | X₁,...,X_{i-1}, X_{i+1},...,X_d)</code> 中采样，最终生成一个收敛到目标分布的马尔可夫链。</p>
+        </section>
+
+        <section id="algorithm">
+            <h2>2. 算法原理</h2>
+
+            <h3>2.1 Gibbs 采样步骤</h3>
+            <ol>
+                <li>初始化状态向量 <code>X⁽⁰⁾ = (X₁⁽⁰⁾, X₂⁽⁰⁾, X₃⁽⁰⁾)</code></li>
+                <li>对于每个迭代 <code>t = 1, 2, ..., N</code>：
+                    <ul>
+                        <li>从 <code>p(X₁ | X₂⁽ᵗ⁻¹⁾, X₃⁽ᵗ⁻¹⁾)</code> 采样 <code>X₁⁽ᵗ⁾</code></li>
+                        <li>从 <code>p(X₂ | X₁⁽ᵗ⁾, X₃⁽ᵗ⁻¹⁾)</code> 采样 <code>X₂⁽ᵗ⁾</code></li>
+                        <li>从 <code>p(X₃ | X₁⁽ᵗ⁾, X₂⁽ᵗ⁾)</code> 采样 <code>X₃⁽ᵗ⁾</code></li>
+                    </ul>
+                </li>
+                <li>收集样本 <code>X⁽ᵗ⁾</code>（跳过 burn-in 期后）</li>
+            </ol>
+
+            <h3>2.2 条件分布的构建</h3>
+            <p>在 Gibbs Studio 中，每个变量的条件分布由两部分组成：</p>
+            <div class="formula">
+                Xᵢ | Xⱼ (j≠i) ~ Distribution(location, scale)
+            </div>
+            <p>其中：</p>
+            <div class="formula">
+                location = Σ (coefficientⱼ × Xⱼ)  (j ≠ i)
+            </div>
+            <p>即条件均值（location）是其他变量的线性组合。</p>
+
+            <div class="tip">
+                <strong>提示：</strong> 系数决定了变量之间的条件依赖强度。正系数表示正相关，负系数表示负相关，系数绝对值越大表示依赖越强。
+            </div>
+
+            <h3>2.3 收敛诊断指标</h3>
+            <p>为了判断链是否收敛，我们计算以下指标：</p>
+            <ul>
+                <li><strong>ESS（有效样本量）</strong>：衡量样本的独立程度</li>
+                <li><strong>自相关系数</strong>：衡量样本间的相关性衰减速度</li>
+                <li><strong>相关矩阵</strong>：衡量变量间的线性关系</li>
+                <li><strong>5%-95% 区间</strong>：展示样本的分布范围</li>
+            </ul>
+        </section>
+
+        <section id="params">
+            <h2>3. 参数说明</h2>
+
+            <h3>3.1 参数面板布局</h3>
+            <p>每个变量（X、Y、Z）都有独立的配置块，包含：</p>
+            <table>
+                <tr>
+                    <th>参数</th>
+                    <th>符号</th>
+                    <th>说明</th>
+                    <th>作用</th>
+                </tr>
+                <tr>
+                    <td>Y 系数 / Z 系数</td>
+                    <td>β</td>
+                    <td>条件分布的回归系数</td>
+                    <td>控制其他变量对当前变量的影响强度</td>
+                </tr>
+                <tr>
+                    <td>尺度 / 标准差</td>
+                    <td>σ</td>
+                    <td>条件分布的尺度参数</td>
+                    <td>控制采样值的波动范围</td>
+                </tr>
+                <tr>
+                    <td>条件分布</td>
+                    <td>-</td>
+                    <td>条件分布类型</td>
+                    <td>决定采样值的概率分布形态</td>
+                </tr>
+            </table>
+
+            <h3>3.2 Location（条件均值）的计算</h3>
+            <p>对于三元变量系统，每个变量的条件均值（location）计算方式如下：</p>
+            
+            <div class="formula">
+                location_X = β_XY × Y + β_XZ × Z<br>
+                location_Y = β_YX × X + β_YZ × Z<br>
+                location_Z = β_ZX × X + β_ZY × Y
+            </div>
+
+            <div class="note">
+                <strong>注意：</strong> location 是一个动态值，每次迭代时会根据其他变量的当前值重新计算。
+            </div>
+
+            <h3>3.3 Scale（尺度参数）的作用</h3>
+            <p>Scale 参数控制采样值的波动程度：</p>
+            <ul>
+                <li><strong>小 scale（0.3-0.7）</strong>：采样值集中在 location 附近</li>
+                <li><strong>中等 scale（0.7-1.2）</strong>：正常波动</li>
+                <li><strong>大 scale（>1.2）</strong>：采样值分散，链混合更快但波动更大</li>
+            </ul>
+
+            <h3>3.4 MCMC 设置参数</h3>
+            <table>
+                <tr>
+                    <th>参数</th>
+                    <th>说明</th>
+                    <th>推荐值</th>
+                </tr>
+                <tr>
+                    <td>初始向量</td>
+                    <td>链的起始点</td>
+                    <td>接近目标分布的均值</td>
+                </tr>
+                <tr>
+                    <td>迭代样本数</td>
+                    <td>总采样次数（含 burn-in）</td>
+                    <td>5000-10000</td>
+                </tr>
+                <tr>
+                    <td>Burn-in</td>
+                    <td>丢弃的初始样本数</td>
+                    <td>500-1000（约10%）</td>
+                </tr>
+                <tr>
+                    <td>Thinning</td>
+                    <td>采样间隔（减少自相关）</td>
+                    <td>1-3</td>
+                </tr>
+                <tr>
+                    <td>随机种子</td>
+                    <td>控制随机性，便于复现</td>
+                    <td>任意整数或留空</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="distributions">
+            <h2>4. 分布详解</h2>
+            <p>每种分布的 <code>location</code> 和 <code>scale</code> 参数作用略有不同：</p>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">正态分布 Normal</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>高斯分布，对称钟形曲线。最常用的条件分布。</p>
+                <div class="dist-formula">f(x) = (1/√(2πσ²)) × exp(-(x-μ)²/(2σ²))</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>分布均值 μ</td></tr>
+                    <tr><td>scale</td><td>标准差 σ</td></tr>
+                </table>
+                <div class="tip">适合作为默认选择，生成平滑、对称的样本。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">均匀分布 Uniform</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>在区间 [μ-σ, μ+σ] 内均匀采样。</p>
+                <div class="dist-formula">f(x) = 1/(2σ)  for x ∈ [μ-σ, μ+σ]</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>区间中心 μ</td></tr>
+                    <tr><td>scale</td><td>半区间宽度（区间 = μ ± σ）</td></tr>
+                </table>
+                <div class="note">样本在区间边界处概率密度最高，中间最低。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">拉普拉斯分布 Laplace</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>双指数分布，比正态分布有更厚的尾部。</p>
+                <div class="dist-formula">f(x) = (1/(2b)) × exp(-|x-μ|/b)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>分布峰值 μ（也是均值和中位数）</td></tr>
+                    <tr><td>scale</td><td>尺度参数 b，控制尾部厚度</td></tr>
+                </table>
+                <div class="warning">会产生更多极端值，适合模拟跳跃行为。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">学生 t 分布 Student-t</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>厚尾分布，自由度较低时尾部更厚。</p>
+                <div class="dist-formula">f(x) ∝ (1 + x²/ν)^(-(ν+1)/2)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>分布中心 μ</td></tr>
+                    <tr><td>scale</td><td>影响自由度（df = 2 + 4×scale）</td></tr>
+                </table>
+                <div class="tip">对异常值有较好的鲁棒性，scale 越大自由度越高（越接近正态）。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">逻辑斯蒂分布 Logistic</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>S 型分布，尾部比正态稍厚。</p>
+                <div class="dist-formula">f(x) = exp(-(x-μ)/s) / (s(1+exp(-(x-μ)/s))²)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>分布中位数 μ</td></tr>
+                    <tr><td>scale</td><td>尺度参数 s，控制分布宽度</td></tr>
+                </table>
+                <div class="note">累积分布函数是逻辑函数，常用于建模概率。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">三角分布 Triangular</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>三角形分布，在 location 处概率最高。</p>
+                <div class="dist-formula">f(x) = 2(x-a)/(b-a)(c-a)  for a ≤ x ≤ c</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>峰值位置（分布中心）</td></tr>
+                    <tr><td>scale</td><td>半区间宽度（区间 = location ± scale）</td></tr>
+                </table>
+                <div class="tip">强制样本集中在 location 附近，波动较小。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">指数分布 Exponential</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>右偏分布，常用于模拟等待时间。</p>
+                <div class="dist-formula">f(x) = (1/λ) × exp(-x/λ)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>位置偏移（实际采样 = location + exp(scale) - scale）</td></tr>
+                    <tr><td>scale</td><td>速率参数的倒数 λ</td></tr>
+                </table>
+                <div class="warning">产生非负偏态样本，适合建模时间间隔或强度。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">伽马分布 Gamma</span>
+                    <span class="dist-kind">连续</span>
+                </div>
+                <p>右偏分布，形状参数由 scale 控制。</p>
+                <div class="dist-formula">f(x) = x^(k-1) × exp(-x/θ) / (Γ(k)θ^k)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>位置偏移</td></tr>
+                    <tr><td>scale</td><td>影响形状参数 k（k = 2 + |location|/scale）</td></tr>
+                </table>
+                <div class="tip">适合建模非负的连续量，如收入、时间等。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">贝塔分布 Beta</span>
+                    <span class="dist-kind">有界</span>
+                </div>
+                <p>在 [0,1] 区间内的分布，适合建模比例。</p>
+                <div class="dist-formula">f(x) = x^(α-1)(1-x)^(β-1) / B(α,β)</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>映射到 [0,1] 区间的中心</td></tr>
+                    <tr><td>scale</td><td>控制分布的集中度</td></tr>
+                </table>
+                <div class="note">输出被限制在 [location-scale, location+scale] 范围内。</div>
+            </div>
+
+            <div class="dist-card">
+                <div class="dist-header">
+                    <span class="dist-name">泊松分布 Poisson</span>
+                    <span class="dist-kind">离散</span>
+                </div>
+                <p>离散计数分布，用于建模事件发生次数。</p>
+                <div class="dist-formula">P(X=k) = (λ^k × e^(-λ)) / k!</div>
+                <table class="param-table">
+                    <tr><th>参数</th><th>作用</th></tr>
+                    <tr><td>location</td><td>对数发生率（rate = exp(location)）</td></tr>
+                    <tr><td>scale</td><td>调整发生率的范围</td></tr>
+                </table>
+                <div class="warning">输出是整数，适合计数数据，散点图会呈现阶梯状。</div>
+            </div>
+        </section>
+
+        <section id="examples">
+            <h2>5. 使用示例</h2>
+
+            <h3>5.1 预设模型说明</h3>
+            <table>
+                <tr>
+                    <th>预设名称</th>
+                    <th>配置特点</th>
+                    <th>适用场景</th>
+                </tr>
+                <tr>
+                    <td>三元高斯基线</td>
+                    <td>所有变量使用正态分布，中等 scale</td>
+                    <td>默认配置，适合首次运行</td>
+                </tr>
+                <tr>
+                    <td>厚尾鲁棒链</td>
+                    <td>Student-t + Laplace + Normal</td>
+                    <td>观察极端值对链的影响</td>
+                </tr>
+                <tr>
+                    <td>有界比例混合</td>
+                    <td>Beta + Triangular + Uniform</td>
+                    <td>观察边界内的波动</td>
+                </tr>
+                <tr>
+                    <td>偏态过程</td>
+                    <td>Exponential + Gamma + Logistic</td>
+                    <td>建模非对称过程</td>
+                </tr>
+                <tr>
+                    <td>计数混合链</td>
+                    <td>Poisson + Normal + Laplace</td>
+                    <td>包含离散计数变量</td>
+                </tr>
+                <tr>
+                    <td>强相关压力测试</td>
+                    <td>高系数 (0.8, 0.6)</td>
+                    <td>观察强相关性下的链混合</td>
+                </tr>
+            </table>
+
+            <h3>5.2 诊断解读指南</h3>
+            <ul>
+                <li><strong>质量 = "优秀"</strong>：ESS > 45% 的总样本数，链混合良好</li>
+                <li><strong>质量 = "可用"</strong>：ESS 在 20%-45% 之间，可接受但建议增加采样</li>
+                <li><strong>质量 = "偏低"</strong>：ESS < 20%，建议增加 thinning 或延长迭代</li>
+                <li><strong>强相关 (>0.75)</strong>：变量间存在强线性关系，链可能收敛较慢</li>
+            </ul>
+
+            <h3>5.3 实践建议</h3>
+            <div class="tip">
+                <strong>调试技巧：</strong> 如果链不稳定，可以尝试：
+                <ul>
+                    <li>降低条件系数（减少变量间依赖）</li>
+                    <li>减小 scale（减少每次跳跃的幅度）</li>
+                    <li>增加 burn-in（给链更多时间收敛）</li>
+                    <li>使用 thinning（减少样本自相关）</li>
+                </ul>
+            </div>
+        </section>
+
+        <footer style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px;">
+            <p>Gibbs Studio Documentation</p>
+            <p>基于 Flask + NumPy + Chart.js 构建 | <a href="https://github.com/OPSAF/gibbs" target="_blank" style="color: var(--blue);">GitHub</a></p>
+        </footer>
+    </main>
+</body>
+</html>
