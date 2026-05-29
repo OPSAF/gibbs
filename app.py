@@ -19,10 +19,53 @@ app = Flask(__name__)
 CORS(app)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
-BASE_DIR = os.path.dirname(__file__)
-JSON_DIR = os.path.join(BASE_DIR, "json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 智能选择存储路径：优先 /tmp（云环境可写），其次本地json目录，最后纯内存
+def get_storage_dir():
+    # 云环境通常有可写的 /tmp 目录
+    tmp_dirs = ['/tmp', '/var/tmp', tempfile.gettempdir()] if 'tempfile' in sys.modules else ['/tmp', '/var/tmp']
+    for d in tmp_dirs:
+        try:
+            test_path = os.path.join(d, '.write_test')
+            with open(test_path, 'w') as f:
+                f.write('test')
+            os.remove(test_path)
+            return os.path.join(d, 'gibbs_json')
+        except (OSError, IOError, PermissionError):
+            continue
+    # 回退到本地目录（可能不可写）
+    local_dir = os.path.join(BASE_DIR, "json")
+    try:
+        os.makedirs(local_dir, exist_ok=True)
+        test_path = os.path.join(local_dir, '.write_test')
+        with open(test_path, 'w') as f:
+            f.write('test')
+        os.remove(test_path)
+        return local_dir
+    except (OSError, IOError, PermissionError):
+        pass
+    # 完全只读环境：返回None表示使用内存存储
+    return None
+
+# 延迟导入 tempfile
+try:
+    import tempfile
+except ImportError:
+    pass
+
+JSON_DIR = get_storage_dir()
+IS_READ_ONLY_FS = JSON_DIR is None
+
+# 内存存储后备方案（用于完全只读的云环境）
+_in_memory_store = {
+    'latest': None,
+    'history': []
+}
+
 MAX_ITERATIONS = 20000
 MAX_RETURNED_SAMPLES = 12000
+MAX_MEMORY_HISTORY = 20
 
 
 DISTRIBUTIONS = {
@@ -324,14 +367,79 @@ def result_payload(config, samples):
 
 
 def save_result(result):
-    os.makedirs(JSON_DIR, exist_ok=True)
+    """智能保存：尝试文件系统，失败则存入内存"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"gibbs_results_{timestamp}.json"
-    with open(os.path.join(JSON_DIR, filename), "w", encoding="utf-8") as file:
-        json.dump(result, file, ensure_ascii=False, indent=2)
-    with open(os.path.join(JSON_DIR, "gibbs_results.json"), "w", encoding="utf-8") as file:
-        json.dump(result, file, ensure_ascii=False, indent=2)
-    return filename
+    
+    # 总是更新内存存储
+    global _in_memory_store
+    memory_entry = {'filename': filename, 'data': result, 'timestamp': timestamp}
+    _in_memory_store['latest'] = result
+    _in_memory_store['history'].insert(0, memory_entry)
+    if len(_in_memory_store['history']) > MAX_MEMORY_HISTORY:
+        _in_memory_store['history'] = _in_memory_store['history'][:MAX_MEMORY_HISTORY]
+    
+    # 尝试文件系统保存
+    if IS_READ_ONLY_FS or JSON_DIR is None:
+        return f"{filename} (memory)"
+    
+    try:
+        os.makedirs(JSON_DIR, exist_ok=True)
+        filepath = os.path.join(JSON_DIR, filename)
+        with open(filepath, "w", encoding="utf-8") as file:
+            json.dump(result, file, ensure_ascii=False, indent=2)
+        
+        latest_path = os.path.join(JSON_DIR, "gibbs_results.json")
+        with open(latest_path, "w", encoding="utf-8") as file:
+            json.dump(result, file, ensure_ascii=False, indent=2)
+        
+        return filename
+    except (OSError, IOError, PermissionError) as e:
+        print(f"[Warning] File system write failed ({e}), using memory storage", file=sys.stderr)
+        return f"{filename} (memory)"
+
+
+def load_from_storage(filename='gibbs_results.json'):
+    """统一加载：优先文件系统，否则从内存加载"""
+    if not IS_READ_ONLY_FS and JSON_DIR is not None:
+        filepath = os.path.join(JSON_DIR, filename)
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as file:
+                    return json.load(file)
+            except Exception:
+                pass
+    
+    # 回退到内存
+    if filename == 'gibbs_results.json':
+        return _in_memory_store.get('latest')
+    
+    for entry in _in_memory_store.get('history', []):
+        if entry.get('filename') == filename:
+            return entry.get('data')
+    
+    return None
+
+
+def list_storage_files():
+    """列出所有可用文件（合并文件系统和内存）"""
+    files_set = set()
+    
+    if not IS_READ_ONLY_FS and JSON_DIR is not None and os.path.exists(JSON_DIR):
+        try:
+            files_set.update(
+                name for name in os.listdir(JSON_DIR) 
+                if name.endswith('.json') and name != 'gibbs_results.json'
+            )
+        except OSError:
+            pass
+    
+    for entry in _in_memory_store.get('history', []):
+        fname = entry.get('filename', '')
+        if fname.endswith('.json'):
+            files_set.add(fname)
+    
+    return sorted(files_set, reverse=True)[:30]
 
 
 @app.route("/")
@@ -341,7 +449,11 @@ def index():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
+    return jsonify({
+        "status": "healthy",
+        "storage_mode": "memory" if IS_READ_ONLY_FS else ("filesystem: " + JSON_DIR),
+        "timestamp": datetime.now().isoformat()
+    })
 
 
 @app.route("/api/distributions", methods=["GET"])
@@ -413,10 +525,9 @@ def export_csv():
 @app.route("/api/load_json", methods=["GET"])
 def load_json():
     try:
-        json_path = os.path.join(JSON_DIR, "gibbs_results.json")
-        if os.path.exists(json_path):
-            with open(json_path, "r", encoding="utf-8") as file:
-                return jsonify(json.load(file))
+        result = load_from_storage('gibbs_results.json')
+        if result:
+            return jsonify(result)
         return jsonify({"error": "No data found"}), 404
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
@@ -425,11 +536,8 @@ def load_json():
 @app.route("/api/list_files", methods=["GET"])
 def list_files():
     try:
-        if os.path.exists(JSON_DIR):
-            files = [name for name in os.listdir(JSON_DIR) if name.endswith(".json")]
-            files.sort(reverse=True)
-            return jsonify({"files": files[:30]})
-        return jsonify({"files": []})
+        files = list_storage_files()
+        return jsonify({"files": files})
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -440,10 +548,9 @@ def load_file(filename):
         if ".." in filename or "/" in filename or "\\" in filename:
             return jsonify({"error": "Invalid filename"}), 400
 
-        json_path = os.path.join(JSON_DIR, filename)
-        if os.path.exists(json_path):
-            with open(json_path, "r", encoding="utf-8") as file:
-                return jsonify(json.load(file))
+        result = load_from_storage(filename)
+        if result:
+            return jsonify(result)
         return jsonify({"error": "File not found"}), 404
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
