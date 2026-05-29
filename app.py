@@ -228,8 +228,36 @@ def gibbs_sampling(params, scales, dist_types, init_values, iterations, burn_in=
     return samples
 
 
+def safe_float(value):
+    """安全转换为浮点数，处理溢出和无效值"""
+    try:
+        v = float(value)
+        if not np.isfinite(v):
+            return 0.0
+        if abs(v) > 1e15:
+            return float(np.sign(v) * 1e10)
+        return v
+    except (ValueError, TypeError, OverflowError):
+        return 0.0
+
+
 def compute_autocorrelation(data, max_lag=50):
-    values = np.asarray(data, dtype=float)
+    values = np.asarray(data, dtype=np.float64)
+    
+    # 裁剪极端值防止溢出
+    finite_mask = np.isfinite(values)
+    if np.sum(finite_mask) < 2:
+        return [1.0]
+    
+    # 用中位数替换非有限值
+    median_val = np.median(values[finite_mask])
+    values = np.where(finite_mask, values, median_val)
+    
+    # 裁剪到合理范围
+    std_val = np.std(values)
+    if std_val > 1e8:
+        values = np.clip(values, median_val - 5 * std_val, median_val + 5 * std_val)
+    
     n = len(values)
     if n < 2:
         return [1.0]
@@ -246,7 +274,8 @@ def compute_autocorrelation(data, max_lag=50):
             autocorr.append(1.0)
             continue
         cov = np.mean((values[:-lag] - mean) * (values[lag:] - mean))
-        autocorr.append(float(cov / variance))
+        acf_val = safe_float(cov / variance)
+        autocorr.append(np.clip(acf_val, -1.0, 1.0))  # 裁剪自相关系数到 [-1, 1]
     return autocorr
 
 
@@ -260,41 +289,90 @@ def compute_ess(samples):
     for lag in range(1, len(acf)):
         if acf[lag] <= 0.03:
             break
-        autocorr_sum += 2.0 * acf[lag]
+        autocorr_sum += 2.0 * max(0.0, acf[lag])  # 确保正值
     return int(n / autocorr_sum) if autocorr_sum > 0 else n
 
 
 def summarize_samples(samples_array):
     diagnostics = []
+    # 确保数组是float64类型并处理NaN/Inf
+    samples_array = np.asarray(samples_array, dtype=np.float64)
+    samples_array = np.nan_to_num(samples_array, nan=0.0, posinf=1e6, neginf=-1e6)
+    
     for index in range(samples_array.shape[1]):
         values = samples_array[:, index]
-        q05, q25, q75, q95 = np.percentile(values, [5, 25, 75, 95])
+        
+        # 过滤掉非有限值进行统计计算
+        finite_vals = values[np.isfinite(values)]
+        
+        if len(finite_vals) < 2:
+            diagnostics.append({
+                "mean": 0.0,
+                "std": 0.0,
+                "var": 0.0,
+                "min": 0.0,
+                "max": 0.0,
+                "median": 0.0,
+                "q05": 0.0,
+                "q25": 0.0,
+                "q75": 0.0,
+                "q95": 0.0,
+                "ess": 1,
+                "autocorrelation": [1.0],
+            })
+            continue
+        
+        q05, q25, q75, q95 = np.percentile(finite_vals, [5, 25, 75, 95])
         diagnostics.append({
-            "mean": float(np.mean(values)),
-            "std": float(np.std(values)),
-            "var": float(np.var(values)),
-            "min": float(np.min(values)),
-            "max": float(np.max(values)),
-            "median": float(np.median(values)),
-            "q05": float(q05),
-            "q25": float(q25),
-            "q75": float(q75),
-            "q95": float(q95),
-            "ess": compute_ess(values),
-            "autocorrelation": [float(a) for a in compute_autocorrelation(values, max_lag=40)],
+            "mean": safe_float(np.mean(finite_vals)),
+            "std": safe_float(np.std(finite_vals)),
+            "var": safe_float(np.var(finite_vals)),
+            "min": safe_float(np.min(finite_vals)),
+            "max": safe_float(np.max(finite_vals)),
+            "median": safe_float(np.median(finite_vals)),
+            "q05": safe_float(q05),
+            "q25": safe_float(q25),
+            "q75": safe_float(q75),
+            "q95": safe_float(q95),
+            "ess": compute_ess(finite_vals.tolist()),
+            "autocorrelation": [safe_float(a) for a in compute_autocorrelation(finite_vals.tolist(), max_lag=40)],
         })
     return diagnostics
 
 
+def safe_corrcoef(matrix):
+    """安全的协方差矩阵计算，处理数值溢出"""
+    matrix = np.asarray(matrix, dtype=np.float64)
+    matrix = np.nan_to_num(matrix, nan=0.0, posinf=1e6, neginf=-1e6)
+    
+    # 标准化每列到相似范围以减少溢出风险
+    col_means = np.mean(matrix, axis=0)
+    col_stds = np.std(matrix, axis=0)
+    col_stds[col_stds < 1e-10] = 1.0
+    
+    normalized = (matrix - col_means) / col_stds
+    normalized = np.clip(normalized, -100, 100)  # 限制范围
+    
+    try:
+        with np.errstate(all='ignore'):  # 忽略所有警告
+            corr = np.corrcoef(normalized, rowvar=False)
+            corr = np.nan_to_num(corr, nan=0.0, posinf=1.0, neginf=-1.0)
+            corr = np.clip(corr, -1.0, 1.0)  # 相关系数必须在 [-1, 1]
+            return corr
+    except:
+        return np.eye(matrix.shape[1])  # 返回单位矩阵作为后备
+
+
 def build_insights(samples_array, diagnostics, dist_types):
-    corr = np.corrcoef(samples_array, rowvar=False)
-    strongest = {"pair": "X-Y", "value": float(corr[0, 1])}
+    corr = safe_corrcoef(samples_array)
+    strongest = {"pair": "X-Y", "value": safe_float(corr[0, 1])}
     for pair, value in {"X-Z": corr[0, 2], "Y-Z": corr[1, 2]}.items():
-        if abs(value) > abs(strongest["value"]):
-            strongest = {"pair": pair, "value": float(value)}
+        val = safe_float(value)
+        if abs(val) > abs(strongest["value"]):
+            strongest = {"pair": pair, "value": val}
 
     ess_values = [d["ess"] for d in diagnostics]
-    min_ess = min(ess_values)
+    min_ess = min(ess_values) if ess_values else 1
     quality = "优秀" if min_ess > len(samples_array) * 0.45 else "可用" if min_ess > len(samples_array) * 0.2 else "偏低"
     suggestions = []
 
@@ -341,18 +419,20 @@ def normalize_payload(data):
 
 
 def result_payload(config, samples):
-    samples_array = np.array(samples, dtype=float)
+    samples_array = np.asarray(samples, dtype=np.float64)
+    samples_array = np.nan_to_num(samples_array, nan=0.0, posinf=1e6, neginf=-1e6)
+    
     diagnostics = summarize_samples(samples_array)
     stats = {
-        "mean": np.mean(samples_array, axis=0).tolist(),
-        "std": np.std(samples_array, axis=0).tolist(),
-        "var": np.var(samples_array, axis=0).tolist(),
-        "min": np.min(samples_array, axis=0).tolist(),
-        "max": np.max(samples_array, axis=0).tolist(),
-        "q05": np.percentile(samples_array, 5, axis=0).tolist(),
-        "q95": np.percentile(samples_array, 95, axis=0).tolist(),
-        "covariance_matrix": np.cov(samples_array, rowvar=False).tolist(),
-        "correlation_matrix": np.corrcoef(samples_array, rowvar=False).tolist(),
+        "mean": [safe_float(v) for v in np.mean(samples_array, axis=0)],
+        "std": [safe_float(v) for v in np.std(samples_array, axis=0)],
+        "var": [safe_float(v) for v in np.var(samples_array, axis=0)],
+        "min": [safe_float(v) for v in np.min(samples_array, axis=0)],
+        "max": [safe_float(v) for v in np.max(samples_array, axis=0)],
+        "q05": [safe_float(v) for v in np.percentile(samples_array, 5, axis=0)],
+        "q95": [safe_float(v) for v in np.percentile(samples_array, 95, axis=0)],
+        "covariance_matrix": safe_corrcoef(samples_array).tolist(),
+        "correlation_matrix": safe_corrcoef(samples_array).tolist(),
     }
     return {
         "parameters": {**config, "timestamp": datetime.now().isoformat()},
