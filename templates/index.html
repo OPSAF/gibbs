@@ -3,607 +3,1813 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIBBS Studio | 高级采样分析平台</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-    
+    <title>Gibbs Studio | 智能采样可视化实验室</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            /* Bili-Tube 灵感配色矩阵 */
-            --bg-global: #f6f7f9;
-            --bg-card: #ffffff;
-            --brand-blue: #00aeec;        /* B站主色 */
-            --brand-pink: #ff6699;        /* B站副色 */
-            --brand-red: #ff0000;         /* YouTube 红 */
-            --text-main: #18191c;
-            --text-body: #61666d;
-            --text-muted: #9499a0;
-            --border-color: #e3e5e7;
-            
-            /* 动效缓动曲线 */
-            --ease-out: cubic-bezier(0.34, 1.56, 0.64, 1);
-            --transition: all 0.4s var(--ease-out);
+            --bg: #f3f5f7;
+            --ink: #10141f;
+            --text: #4e5968;
+            --muted: #8994a5;
+            --line: #dce3ed;
+            --panel: rgba(255, 255, 255, 0.92);
+            --panel-solid: #ffffff;
+            --soft: #f7f9fc;
+            --blue: #0f84d8;
+            --teal: #00a88f;
+            --pink: #e65d86;
+            --gold: #c28a18;
+            --violet: #7257c8;
+            --red: #d84646;
+            --shadow: 0 22px 70px rgba(25, 35, 55, 0.12);
+
+            /* Spring Animation Curves (Framer Motion Inspired) */
+            --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+            --spring-snappy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+            /* Glow Colors */
+            --glow-blue: rgba(15, 132, 216, 0.35);
+            --glow-teal: rgba(0, 168, 143, 0.35);
+            --glow-pink: rgba(230, 93, 134, 0.35);
+
+            /* Animation Durations */
+            --duration-fast: 200ms;
+            --duration-normal: 350ms;
+            --duration-slow: 500ms;
+            --duration-page: 800ms;
+
+            /* Reduced motion */
+            @media (prefers-reduced-motion: reduce) {
+                *, *::before, *::after {
+                    animation-duration: 0.01ms !important;
+                    transition-duration: 0.01ms !important;
+                    scroll-behavior: auto !important;
+                }
+            }
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--bg-global);
-            color: var(--text-body);
-            overflow-x: hidden;
+            margin: 0;
+            background:
+                linear-gradient(180deg, #eef3f7 0, #f7f8fa 420px, var(--bg) 100%);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
             line-height: 1.5;
+            opacity: 0;
+            animation: pageFadeIn var(--duration-page) var(--ease-out-expo) forwards;
         }
 
-        /* ================= KV (Key Visual) 主视觉舞台 ================= */
-        .kv-stage {
-            position: relative;
-            width: 100%;
-            height: 420px;
-            background-color: #ffffff;
+        button, input, select { font: inherit; }
+        a { color: inherit; text-decoration: none; }
+
+        /* ==================== PAGE FADE IN ANIMATION ==================== */
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ==================== STAGGERED REVEAL ANIMATIONS ==================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition:
+                opacity var(--duration-normal) var(--spring-smooth),
+                transform var(--duration-normal) var(--spring-smooth);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 80ms; }
+        .reveal-delay-2 { transition-delay: 160ms; }
+        .reveal-delay-3 { transition-delay: 240ms; }
+        .reveal-delay-4 { transition-delay: 320ms; }
+        .reveal-delay-5 { transition-delay: 400ms; }
+
+        /* ==================== NAVIGATION ==================== */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            height: 62px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            text-align: center;
-            overflow: hidden;
-            border-bottom: 1px solid var(--border-color);
+            justify-content: space-between;
+            padding: 0 28px;
+            border-bottom: 1px solid rgba(220, 227, 237, 0.82);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(18px);
+            transition:
+                background var(--duration-normal) ease,
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
         }
 
-        /* 纯CSS弥散光背景，CPU零压力 */
-        .kv-glow {
-            position: absolute;
-            width: 100%; height: 100%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(0, 174, 236, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(255, 102, 153, 0.15) 0%, transparent 40%);
-            z-index: 0;
+        nav.scrolled {
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 2px 20px rgba(25, 35, 55, 0.08);
+            border-color: transparent;
         }
 
-        .kv-content {
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--ink);
+            font-weight: 900;
+            letter-spacing: 0;
             position: relative;
-            z-index: 2;
-            padding: 0 20px;
+            overflow: hidden;
         }
 
-        .kv-title {
-            font-family: 'Syne', sans-serif;
-            font-size: 4rem;
+        .brand::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--blue), var(--teal), var(--pink));
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform var(--duration-normal) var(--spring-smooth);
+        }
+
+        .brand:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .brand-mark {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background:
+                linear-gradient(135deg, var(--blue) 0 34%, transparent 34%),
+                linear-gradient(225deg, var(--pink) 0 34%, transparent 34%),
+                linear-gradient(45deg, var(--teal) 0 40%, transparent 40%),
+                #121826;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+            transition: transform var(--duration-fast) var(--spring-bounce), box-shadow var(--duration-normal) ease;
+        }
+
+        .brand:hover .brand-mark {
+            transform: rotate(-6deg) scale(1.08);
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.35),
+                0 0 20px var(--glow-blue);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ==================== BUTTON SYSTEM WITH SPRING & GLOW ==================== */
+        .btn {
+            min-height: 38px;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            padding: 8px 13px;
+            cursor: pointer;
+            background: #eef3f8;
+            color: var(--ink);
             font-weight: 800;
-            letter-spacing: -0.05em;
-            line-height: 1;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #18191c, #61666d);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition:
+                transform var(--duration-fast) var(--spring-bounce),
+                background var(--duration-normal) ease,
+                border-color var(--duration-normal) ease,
+                box-shadow var(--duration-normal) ease;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.3) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity var(--duration-fast) ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 28px rgba(20, 30, 50, 0.15);
+        }
+
+        .btn:hover::before {
+            opacity: 1;
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(0.97);
+            transition-duration: var(--duration-fast);
+        }
+
+        .btn.primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--blue), #0b6bb5);
+            box-shadow: 0 4px 16px var(--glow-blue);
+        }
+
+        .btn.primary:hover {
+            box-shadow: 0 8px 32px var(--glow-blue), 0 0 48px var(--glow-blue);
+            background: linear-gradient(135deg, #1a94e8, var(--blue));
+        }
+
+        .btn.success {
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), #00967a);
+            box-shadow: 0 4px 16px var(--glow-teal);
+        }
+
+        .btn.success:hover {
+            box-shadow: 0 8px 32px var(--glow-teal);
+        }
+
+        .btn.dark {
+            color: #fff;
+            background: var(--ink);
+        }
+
+        .btn.dark:hover {
+            box-shadow: 0 10px 28px rgba(16, 20, 31, 0.3);
+        }
+
+        .btn.danger {
+            color: var(--red);
+            background: #fff3f3;
+            border-color: #ffd0d0;
+        }
+
+        .btn.danger:hover {
+            background: #ffe5e5;
+            box-shadow: 0 8px 24px rgba(216, 70, 70, 0.15);
+        }
+
+        /* Ripple effect for buttons */
+        .btn .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.45);
+            transform: scale(0);
+            animation: rippleEffect 600ms ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* ==================== KEY VISUAL SECTION ==================== */
+        .kv {
+            position: relative;
+            min-height: 430px;
+            overflow: hidden;
+            border-bottom: 1px solid var(--line);
+            background:
+                linear-gradient(120deg, rgba(15,132,216,.13), transparent 35%),
+                linear-gradient(250deg, rgba(0,168,143,.12), transparent 42%),
+                #fbfcfd;
+        }
+
+        #kvCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: .72;
+        }
+
+        .kv-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 58px 28px 36px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 420px;
+            gap: 28px;
+            align-items: end;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 10px;
+            border: 1px solid rgba(16,20,31,.12);
+            border-radius: 999px;
+            background: rgba(255,255,255,.72);
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 800;
+            transition: transform var(--duration-fast) var(--spring-bounce);
+        }
+
+        .eyebrow:hover {
+            transform: scale(1.04);
+        }
+
+        .pulse-line {
+            width: 42px;
+            height: 10px;
+            background: repeating-linear-gradient(90deg, var(--blue) 0 5px, transparent 5px 8px);
+            clip-path: polygon(0 60%, 16% 60%, 25% 5%, 36% 92%, 48% 40%, 58% 60%, 100% 60%, 100% 100%, 0 100%);
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; filter: brightness(1); }
+            50% { opacity: 0.65; filter: brightness(1.3); }
+        }
+
+        .art-title {
+            margin: 16px 0 12px;
+            max-width: 900px;
+            color: var(--ink);
+            font-size: clamp(48px, 8vw, 108px);
+            line-height: .88;
+            letter-spacing: 0;
+            font-weight: 950;
+            animation: titleReveal 1000ms var(--spring-smooth) both;
+        }
+
+        @keyframes titleReveal {
+            from {
+                opacity: 0;
+                transform: translateY(36px) scale(0.96);
+                filter: blur(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        .art-title span {
+            display: block;
+            color: transparent;
+            background:
+                linear-gradient(90deg, #10141f 0%, #0f84d8 36%, #00a88f 70%, #e65d86 100%);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: slideUp 0.8s var(--ease-out) both;
+            background-clip: text;
+            text-shadow: 0 18px 45px rgba(15, 132, 216, .14);
+            background-size: 200% auto;
+            animation: gradientShift 4s ease-in-out infinite alternate;
         }
 
-        .kv-subtitle {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            max-width: 700px;
-            margin: 0 auto 30px;
-            font-weight: 400;
-            animation: slideUp 0.8s var(--ease-out) 0.1s both;
+        @keyframes gradientShift {
+            from { background-position: 0% center; }
+            to { background-position: 200% center; }
         }
 
-        /* ================= 商业导航栏 ================= */
-        nav {
-            height: 64px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100;
-            border-bottom: 1px solid var(--border-color);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 40px;
+        .kv-copy {
+            max-width: 760px;
+            color: #394456;
+            font-size: 17px;
+            animation: fadeSlideUp 700ms var(--spring-smooth) 150ms both;
         }
 
-        .nav-logo {
-            display: flex; align-items: center; gap: 10px;
-            font-weight: 700; color: var(--text-main); font-size: 1.2rem;
-        }
-        
-        .logo-dot {
-            width: 12px; height: 12px; border-radius: 3px;
-            background: var(--brand-blue); box-shadow: 0 0 10px var(--brand-blue);
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* ================= 布局容器与卡片 ================= */
-        .container {
-            max-width: 1400px;
-            margin: -60px auto 0; /* 向上偏移产生叠层感 */
-            padding: 0 24px 60px;
-            position: relative; z-index: 10;
+        .kv-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+            animation: fadeSlideUp 700ms var(--spring-smooth) 300ms both;
+        }
+
+        /* ==================== CARD FLOATING EFFECTS ==================== */
+        .kv-card {
+            border: 1px solid rgba(16, 20, 31, .12);
+            background: rgba(255,255,255,.76);
+            backdrop-filter: blur(16px);
+            border-radius: 8px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+            transition:
+                transform var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
+            animation: cardFloatIn 600ms var(--spring-smooth) 400ms both;
+        }
+
+        .kv-card:hover {
+            transform: translateY(-6px) rotateX(2deg);
+            box-shadow: 0 28px 56px rgba(25, 35, 55, 0.14);
+            border-color: rgba(15, 132, 216, 0.3);
+        }
+
+        @keyframes cardFloatIn {
+            from {
+                opacity: 0;
+                transform: translateY(40px) rotateY(-4deg) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateY(0) scale(1);
+            }
+        }
+
+        .dist-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dist-chip {
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(16, 20, 31, .1);
+            background: rgba(255,255,255,.86);
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: default;
+            transition:
+                transform var(--duration-fast) var(--spring-bounce),
+                background var(--duration-normal) ease,
+                box-shadow var(--duration-normal) ease;
+        }
+
+        .dist-chip:hover {
+            transform: translateY(-2px) scale(1.06);
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(25, 35, 55, 0.1);
+        }
+
+        /* ==================== SHELL LAYOUT ==================== */
+        .shell {
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 24px 28px 58px;
+        }
+
+        /* ==================== STAT CARDS WITH HOVER GLOW ==================== */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card, .panel {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            transition:
+                transform var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
+        }
+
+        .stat-card {
+            min-height: 92px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: "";
+            position: absolute;
+            left: 15px;
+            right: 15px;
+            bottom: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--blue), var(--teal), var(--pink));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform var(--duration-slow) var(--spring-smooth);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(25, 35, 55, 0.12);
+            border-color: rgba(15, 132, 216, 0.25);
+        }
+
+        .stat-card:hover::after {
+            transform: scaleX(1);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            transition: color var(--duration-normal) ease;
+        }
+
+        .stat-card:hover .stat-label {
+            color: var(--text);
+        }
+
+        .stat-value {
+            margin-top: 8px;
+            color: var(--ink);
+            font-size: 22px;
+            font-weight: 950;
+            font-variant-numeric: tabular-nums;
+            transition:
+                color var(--duration-normal) ease,
+                transform var(--duration-fast) var(--spring-bounce);
+        }
+
+        .stat-card:hover .stat-value {
+            color: var(--blue);
+            transform: scale(1.05);
+        }
+
+        /* ==================== PANEL WITH FLOATING SHADOW ==================== */
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(320px, 420px) 1fr;
+            gap: 22px;
+            align-items: start;
         }
 
         .panel {
-            background: var(--bg-card);
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            padding: 32px;
-            margin-bottom: 24px;
-            transition: var(--transition);
-            animation: slideUp 0.8s var(--ease-out) 0.2s both;
+            transition:
+                transform var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
         }
 
         .panel:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.05);
+            transform: translateY(-3px);
+            box-shadow: 0 26px 66px rgba(25, 35, 55, 0.14);
         }
 
-        .panel-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 25px;
+        .panel-head {
+            padding: 17px 19px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
         }
 
-        .panel-header h2 {
-            font-size: 1.4rem; font-weight: 700; color: var(--text-main);
-            display: flex; align-items: center; gap: 8px;
+        h2, h3, p { margin: 0; }
+        h2 { color: var(--ink); font-size: 17px; }
+        h3 { color: var(--ink); font-size: 14px; margin-bottom: 12px; }
+
+        .config { padding: 18px; }
+
+        /* ==================== CONFIG BLOCKS ==================== */
+        .block {
+            margin-bottom: 14px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--soft);
+            transition:
+                border-color var(--duration-normal) ease,
+                box-shadow var(--duration-normal) ease,
+                transform var(--duration-fast) var(--spring-bounce);
         }
 
-        /* ================= 艺术化表单控件 ================= */
-        .params-grid {
+        .block:hover {
+            border-color: rgba(15, 132, 216, 0.3);
+            box-shadow: 0 4px 16px rgba(15, 132, 216, 0.06);
+            transform: translateX(3px);
+        }
+
+        .row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: 1fr 128px;
+            gap: 10px;
+            align-items: center;
+            margin-top: 9px;
         }
 
-        .param-group {
-            background: #f6f7f8;
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            transition: var(--transition);
-        }
-
-        .param-group:hover {
-            background: #ffffff;
-            border-color: var(--brand-blue);
-        }
-
-        .param-group h3 {
-            font-size: 0.9rem; font-weight: 700; color: var(--text-main);
-            margin-bottom: 16px; border-left: 4px solid var(--brand-blue);
-            padding-left: 10px;
-        }
-
-        .param-row {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 12px;
+        label {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 650;
         }
 
         input, select {
-            width: 110px;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: #ffffff;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            transition: var(--transition);
+            width: 100%;
+            min-height: 37px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 7px 9px;
+            background: #fff;
+            color: var(--ink);
+            transition:
+                border-color var(--duration-normal) ease,
+                box-shadow var(--duration-normal) ease,
+                transform var(--duration-fast) var(--spring-bounce);
         }
 
-        input:focus {
-            border-color: var(--brand-blue);
-            box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.1);
-            outline: none;
+        input:focus, select:focus {
+            border-color: var(--blue);
+            outline: 3px solid rgba(15, 132, 216, .15);
+            box-shadow: 0 0 0 4px rgba(15, 132, 216, 0.08);
+            transform: scale(1.02);
         }
 
-        /* ================= 按钮体系 ================= */
-        .btn-group {
-            display: flex; gap: 12px; margin-top: 30px;
-            padding-top: 25px; border-top: 1px solid var(--border-color);
+        input:hover:not(:focus), select:hover:not(:focus) {
+            border-color: rgba(15, 132, 216, 0.4);
         }
 
-        .btn {
-            padding: 12px 28px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--brand-blue);
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 174, 236, 0.2);
-        }
-
-        .btn-primary:hover {
-            background: var(--brand-primary-hover);
-            transform: scale(1.03);
-        }
-
-        .btn-secondary {
-            background: #f1f2f3;
-            color: var(--text-main);
-        }
-
-        .btn-secondary:hover { background: #e3e5e7; }
-
-        /* ================= 数据可视化看板 ================= */
-        .metrics-grid {
+        .triple {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
         }
 
-        .metric-card {
-            background: #f6f7f8;
-            padding: 20px;
-            border-radius: 12px;
-            transition: var(--transition);
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
 
-        .metric-card:hover { background: #ffffff; border: 1px solid var(--border-color); }
+        .status {
+            min-height: 24px;
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            transition: color var(--duration-normal) ease;
+        }
+        .status.ok { color: var(--teal); }
+        .status.error { color: var(--red); }
 
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-
-        .metric-value { 
-            font-size: 1.6rem; font-weight: 700; color: var(--text-main); 
-            font-family: 'JetBrains Mono', monospace; margin-top: 4px;
+        .dist-note {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            transition: color var(--duration-normal) ease;
         }
 
-        .tabs {
-            display: inline-flex; background: #f1f2f3; padding: 4px; border-radius: 12px; margin-bottom: 24px;
+        /* ==================== ANALYSIS SECTION ==================== */
+        .analysis {
+            display: grid;
+            gap: 18px;
         }
 
-        .tab {
-            padding: 8px 24px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
-            transition: var(--transition);
+        .tabs, .tool-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .tab.active { background: #ffffff; color: var(--brand-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tab, .tool-tab {
+            min-height: 34px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            padding: 6px 12px;
+            cursor: pointer;
+            font-weight: 850;
+            position: relative;
+            overflow: hidden;
+            transition:
+                all var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease;
+        }
 
+        .tab::before, .tool-tab::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: currentColor;
+            opacity: 0;
+            transition: opacity var(--duration-fast) ease;
+        }
+
+        .tab:hover, .tool-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 35, 55, 0.08);
+        }
+
+        .tab.active, .tool-tab.active {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: rgba(15, 132, 216, .08);
+            box-shadow: 0 2px 12px rgba(15, 132, 216, 0.12);
+            transform: translateY(-1px);
+        }
+
+        /* ==================== CHART BOXES ==================== */
         .chart-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            padding: 18px;
         }
 
         .chart-box {
-            background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color);
+            min-height: 318px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            position: relative;
+            transition:
+                transform var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
         }
 
-        /* ================= 关键动画 ================= */
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .chart-box:hover {
+            transform: translateY(-4px) scale(1.005);
+            box-shadow: 0 20px 44px rgba(25, 35, 55, 0.1);
+            border-color: rgba(15, 132, 216, 0.2);
         }
 
-        .loading {
-            display: none; padding: 20px; color: var(--brand-blue); font-weight: 700; text-align: center;
+        .chart-box.wide { grid-column: 1 / -1; min-height: 345px; }
+        .chart-box canvas { width: 100% !important; height: 260px !important; }
+        .chart-box.wide canvas { height: 286px !important; }
+
+        .advanced-grid {
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 16px;
+            padding: 18px;
+            padding-top: 0;
         }
-        .loading.active { display: block; animation: pulse 1.5s infinite; }
 
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        /* ==================== MATRIX & TABLES ==================== */
+        .matrix, .diagnostic-table {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            padding: 14px;
+            transition:
+                transform var(--duration-normal) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease;
+        }
 
-        @media (max-width: 768px) {
-            .kv-title { font-size: 2.5rem; }
-            .chart-grid { grid-template-columns: 1fr; }
+        .matrix:hover, .diagnostic-table:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(25, 35, 55, 0.08);
+        }
+
+        .matrix h3, .diagnostic-table h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .matrix-cell {
+            min-height: 54px;
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            color: var(--ink);
+            border: 1px solid rgba(16,20,31,.08);
+            font-variant-numeric: tabular-nums;
+            transition:
+                transform var(--duration-fast) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease;
+        }
+
+        .matrix-cell:hover:not(.matrix-label) {
+            transform: scale(1.08);
+            box-shadow: 0 4px 16px rgba(25, 35, 55, 0.1);
+            z-index: 1;
+        }
+
+        .matrix-label {
+            background: var(--soft);
+            color: var(--muted);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 9px 7px;
+            border-bottom: 1px solid var(--line);
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            transition:
+                background var(--duration-fast) ease,
+                color var(--duration-fast) ease;
+        }
+
+        tr:hover td {
+            background: rgba(15, 132, 216, 0.03);
+        }
+
+        th:first-child, td:first-child { text-align: left; color: var(--ink); font-weight: 850; }
+
+        /* ==================== INSIGHT LIST ==================== */
+        .insight-list {
+            display: grid;
+            gap: 10px;
+            padding: 18px;
+        }
+
+        .insight {
+            border-left: 4px solid var(--teal);
+            background: #f2fbf8;
+            padding: 11px 13px;
+            border-radius: 6px;
+            color: var(--ink);
+            transition:
+                transform var(--duration-fast) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                background var(--duration-normal) ease;
+            animation: insightSlide 400ms var(--spring-smooth) both;
+        }
+
+        .insight:hover {
+            transform: translateX(6px);
+            box-shadow: 0 4px 16px rgba(0, 168, 143, 0.1);
+            background: #ecfaf6;
+        }
+
+        @keyframes insightSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ==================== HISTORY LIST ==================== */
+        .history-list {
+            display: grid;
+            gap: 8px;
+            max-height: 188px;
+            overflow: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: #fff;
+            font-size: 13px;
+            transition:
+                transform var(--duration-fast) var(--spring-bounce),
+                box-shadow var(--duration-normal) ease,
+                border-color var(--duration-normal) ease;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 16px rgba(25, 35, 55, 0.08);
+            border-color: rgba(15, 132, 216, 0.3);
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 0 28px 42px;
+            color: var(--muted);
+            font-size: 13px;
+            transition: color var(--duration-normal) ease;
+        }
+
+        /* ==================== LOADING / FLOWING ANIMATION ==================== */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition:
+                opacity var(--duration-normal) ease,
+                visibility var(--duration-normal) ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .flow-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .flow-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .flow-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--blue);
+            animation: flowPulse 1.4s ease-in-out infinite;
+        }
+
+        .flow-dot:nth-child(2) { animation-delay: 0.16s; background: var(--teal); }
+        .flow-dot:nth-child(3) { animation-delay: 0.32s; background: var(--pink); }
+        .flow-dot:nth-child(4) { animation-delay: 0.48s; background: var(--violet); }
+
+        @keyframes flowPulse {
+            0%, 80%, 100% {
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+                box-shadow: 0 0 16px currentColor;
+            }
+        }
+
+        .flow-text {
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            animation: textFade 1.6s ease-in-out infinite;
+        }
+
+        @keyframes textFade {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Progress bar for loading */
+        .progress-bar {
+            width: 200px;
+            height: 3px;
+            background: var(--line);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            display: block;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), var(--teal));
+            border-radius: 3px;
+            animation: progressFlow 1.2s ease-in-out infinite;
+        }
+
+        @keyframes progressFlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1120px) {
+            .kv-inner, .workspace, .advanced-grid {
+                grid-template-columns: 1fr;
+            }
+            .kv-inner { padding-top: 38px; }
+            .quick-stats, .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 700px) {
+            nav { padding: 0 14px; }
+            .nav-actions .btn:not(.dark) { display: none; }
+            .kv-inner, .shell, .footer { padding-left: 14px; padding-right: 14px; }
+            .quick-stats, .chart-grid { grid-template-columns: 1fr; }
+            .chart-box.wide { grid-column: auto; }
+            .row { grid-template-columns: 1fr; }
+            .art-title { font-size: 48px; }
         }
     </style>
 </head>
 <body>
 
-    <nav>
-        <div class="nav-logo">
-            <div class="logo-dot"></div>
-            GIBBS STUDIO
+    <!-- Flowing Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="flow-loader">
+            <div class="flow-dots">
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+            </div>
+            <div class="flow-text">正在计算采样链...</div>
+            <div class="progress-bar"></div>
         </div>
-        <div style="display:flex; gap:20px;">
-            <button class="btn btn-secondary" style="padding: 8px 16px;" onclick="loadPresets()">读取预设</button>
-            <div style="width:36px; height:36px; border-radius:50%; background:#e3e5e7; border:1px solid var(--border-color);"></div>
+    </div>
+
+    <nav id="navbar">
+        <div class="brand"><span class="brand-mark"></span><span>Gibbs Studio</span></div>
+        <div class="nav-actions">
+            <button class="btn" onclick="loadExistingData()">载入最新</button>
+            <button class="btn" onclick="loadHistoryList()">历史</button>
+            <button class="btn success" onclick="exportToCSV()">导出 CSV</button>
+            <a class="btn" href="/docs">帮助文档</a>
+            <a class="btn dark" href="https://github.com/OPSAF/gibbs" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
     </nav>
 
-    <section class="kv-stage">
-        <div class="kv-glow"></div>
-        <div class="kv-content">
-            <h1 class="kv-title">Gibbs Algorithm</h1>
-            <p class="kv-subtitle">工业级高维马尔可夫链蒙特卡洛（MCMC）采样引擎，通过交互式可视化揭示高维联合分布的收敛真谛。</p>
-            <div style="display:flex; gap:16px; justify-content:center;">
-                <button class="btn btn-primary" onclick="generateData()">开始仿真采样</button>
-                <button class="btn btn-secondary" onclick="exportToCSV()">导出CSV报告</button>
+    <section class="kv">
+        <canvas id="kvCanvas" aria-hidden="true"></canvas>
+        <div class="kv-inner">
+            <div>
+                <div class="eyebrow reveal"><span class="pulse-line"></span><span>MCMC Visual Intelligence Lab</span></div>
+                <h1 class="art-title">Gibbs <span>Algorithm</span></h1>
+                <p class="kv-copy">用可交互的轨迹、密度、相关矩阵和诊断指标观察 Gibbs 采样过程。它不只是生成样本，也会帮助你判断链是否混合良好、变量是否强相关、分布形态是否可信。</p>
+                <div class="kv-actions">
+                    <button class="btn primary" onclick="document.getElementById('workbench').scrollIntoView({behavior:'smooth'})">进入工作台</button>
+                    <button class="btn" onclick="randomizeModel(); document.getElementById('workbench').scrollIntoView({behavior:'smooth'})">生成智能模型</button>
+                    <a class="btn dark" href="https://github.com/OPSAF/gibbs" target="_blank" rel="noopener noreferrer">查看 GitHub 源码</a>
+                </div>
+            </div>
+            <div class="kv-card">
+                <h2>可用条件分布</h2>
+                <div class="dist-strip" id="distStrip">
+                    <span class="dist-chip">Normal</span>
+                    <span class="dist-chip">Uniform</span>
+                    <span class="dist-chip">Student-t</span>
+                    <span class="dist-chip">Gamma</span>
+                    <span class="dist-chip">Poisson</span>
+                </div>
             </div>
         </div>
     </section>
 
-    <main class="container">
-        
-        <div class="panel">
-            <div class="panel-header">
-                <h2>仿真动力学参数</h2>
-                <select id="preset-select" onchange="applyPreset()" style="width: 200px;">
-                    <option value="">选取官方模型模板...</option>
-                </select>
-            </div>
+    <main class="shell" id="workbench">
+        <section class="quick-stats">
+            <div class="stat-card reveal reveal-delay-1"><div class="stat-label">样本数</div><div class="stat-value" id="nSamples">-</div></div>
+            <div class="stat-card reveal reveal-delay-2"><div class="stat-label">诊断质量</div><div class="stat-value" id="quality">-</div></div>
+            <div class="stat-card reveal reveal-delay-3"><div class="stat-label">最强相关</div><div class="stat-value" id="strongCorr">-</div></div>
+            <div class="stat-card reveal reveal-delay-4"><div class="stat-label">最低 ESS</div><div class="stat-value" id="minEss">-</div></div>
+        </section>
 
-            <div class="params-grid">
-                <div class="param-group">
-                    <h3>X | Y, Z 条件分布</h3>
-                    <div class="param-row"><label>a (Y系数)</label><input type="number" id="param_x0" value="0.5" step="0.05"></div>
-                    <div class="param-row"><label>b (Z系数)</label><input type="number" id="param_x1" value="0.3" step="0.05"></div>
-                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_x" value="0.8" step="0.05"></div>
-                    <div class="param-row">
-                        <label>基底分布</label>
-                        <select id="dist_x"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
-                    </div>
+        <section class="workspace">
+            <aside class="panel reveal">
+                <div class="panel-head">
+                    <h2>采样配置</h2>
+                    <select id="preset-select" onchange="applyPreset()" aria-label="模型预设"></select>
                 </div>
-
-                <div class="param-group">
-                    <h3>Y | X, Z 条件分布</h3>
-                    <div class="param-row"><label>a (X系数)</label><input type="number" id="param_y0" value="0.5" step="0.05"></div>
-                    <div class="param-row"><label>b (Z系数)</label><input type="number" id="param_y1" value="0.4" step="0.05"></div>
-                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_y" value="0.7" step="0.05"></div>
-                    <div class="param-row">
-                        <label>基底分布</label>
-                        <select id="dist_y"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
+                <div class="config">
+                    <div class="block">
+                        <h3>X | Y, Z</h3>
+                        <div class="row"><label>Y 系数</label><input type="number" id="param_x0" value="0.5" step="0.05"></div>
+                        <div class="row"><label>Z 系数</label><input type="number" id="param_x1" value="0.3" step="0.05"></div>
+                        <div class="row"><label>尺度 / 标准差</label><input type="number" id="std_x" value="0.8" step="0.05" min="0.001"></div>
+                        <div class="row"><label>条件分布</label><select id="dist_x" onchange="showDistributionHint()"></select></div>
                     </div>
-                </div>
 
-                <div class="param-group">
-                    <h3>Z | X, Y 条件分布</h3>
-                    <div class="param-row"><label>a (X系数)</label><input type="number" id="param_z0" value="0.3" step="0.05"></div>
-                    <div class="param-row"><label>b (Y系数)</label><input type="number" id="param_z1" value="0.4" step="0.05"></div>
-                    <div class="param-row"><label>标准差 σ</label><input type="number" id="std_z" value="0.9" step="0.05"></div>
-                    <div class="param-row">
-                        <label>基底分布</label>
-                        <select id="dist_z"><option value="normal">Gaussian</option><option value="uniform">Uniform</option></select>
+                    <div class="block">
+                        <h3>Y | X, Z</h3>
+                        <div class="row"><label>X 系数</label><input type="number" id="param_y0" value="0.5" step="0.05"></div>
+                        <div class="row"><label>Z 系数</label><input type="number" id="param_y1" value="0.4" step="0.05"></div>
+                        <div class="row"><label>尺度 / 标准差</label><input type="number" id="std_y" value="0.7" step="0.05" min="0.001"></div>
+                        <div class="row"><label>条件分布</label><select id="dist_y" onchange="showDistributionHint()"></select></div>
                     </div>
-                </div>
 
-                <div class="param-group">
-                    <h3>MCMC 链控设置</h3>
-                    <div class="param-row">
-                        <label>起始向量</label>
-                        <div style="display:flex; gap:4px;">
-                            <input type="number" id="init_x" value="1.0" style="width:35px; padding:4px;">
-                            <input type="number" id="init_y" value="2.0" style="width:35px; padding:4px;">
-                            <input type="number" id="init_z" value="2.0" style="width:35px; padding:4px;">
+                    <div class="block">
+                        <h3>Z | X, Y</h3>
+                        <div class="row"><label>X 系数</label><input type="number" id="param_z0" value="0.3" step="0.05"></div>
+                        <div class="row"><label>Y 系数</label><input type="number" id="param_z1" value="0.4" step="0.05"></div>
+                        <div class="row"><label>尺度 / 标准差</label><input type="number" id="std_z" value="0.9" step="0.05" min="0.001"></div>
+                        <div class="row"><label>条件分布</label><select id="dist_z" onchange="showDistributionHint()"></select></div>
+                        <p class="dist-note" id="distHint">选择分布后这里会显示建模提示。</p>
+                    </div>
+
+                    <div class="block">
+                        <h3>MCMC 设置</h3>
+                        <div class="row">
+                            <label>初始向量</label>
+                            <div class="triple">
+                                <input type="number" id="init_x" value="1.0" step="0.1" aria-label="初始 X">
+                                <input type="number" id="init_y" value="2.0" step="0.1" aria-label="初始 Y">
+                                <input type="number" id="init_z" value="2.0" step="0.1" aria-label="初始 Z">
+                            </div>
+                        </div>
+                        <div class="row"><label>迭代样本数</label><input type="number" id="iterations" value="5000" min="100" max="20000"></div>
+                        <div class="row"><label>Burn-in</label><input type="number" id="burn_in" value="500" min="0"></div>
+                        <div class="row"><label>Thinning</label><input type="number" id="thinning" value="1" min="1" max="20"></div>
+                        <div class="row"><label>随机种子</label><input type="number" id="random_seed" value="42" placeholder="留空随机"></div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn primary" onclick="generateData()">开始采样</button>
+                        <button class="btn" onclick="randomizeModel()">智能随机模型</button>
+                        <button class="btn danger" onclick="resetView()">清空图表</button>
+                    </div>
+                    <div class="status" id="status">准备就绪。</div>
+                </div>
+            </aside>
+
+            <section class="analysis">
+                <div class="panel reveal">
+                    <div class="panel-head">
+                        <h2>多视图采样诊断</h2>
+                        <div class="tabs">
+                            <button class="tab active" data-var="X" onclick="showVariable('X')">X</button>
+                            <button class="tab" data-var="Y" onclick="showVariable('Y')">Y</button>
+                            <button class="tab" data-var="Z" onclick="showVariable('Z')">Z</button>
                         </div>
                     </div>
-                    <div class="param-row"><label>迭代总步数</label><input type="number" id="iterations" value="10000"></div>
-                    <div class="param-row"><label>老化步数</label><input type="number" id="burn_in" value="1000"></div>
-                    <div class="param-row"><label>变稀 Thinning</label><input type="number" id="thinning" value="1"></div>
+                    <div class="chart-grid">
+                        <div class="chart-box"><canvas id="trajectoryChart"></canvas></div>
+                        <div class="chart-box"><canvas id="histogramChart"></canvas></div>
+                        <div class="chart-box"><canvas id="autocorrChart"></canvas></div>
+                        <div class="chart-box"><canvas id="jointChart"></canvas></div>
+                        <div class="chart-box wide"><canvas id="allTrajectoriesChart"></canvas></div>
+                    </div>
+                    <div class="advanced-grid">
+                        <div class="matrix">
+                            <h3><span>相关矩阵热力图</span><span id="matrixHint">等待样本</span></h3>
+                            <div class="matrix-grid" id="corrMatrix"></div>
+                        </div>
+                        <div class="chart-box" style="min-height:300px;"><canvas id="diagnosticRadar"></canvas></div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="btn-group">
-                <button class="btn btn-secondary" onclick="loadHistoryList()">分析历史归档</button>
-                <button class="btn btn-secondary" onclick="loadExistingData()">同步最新快照</button>
-                <div style="flex-grow:1;"></div>
-                <button class="btn btn-primary" onclick="generateData()">开始演化采样</button>
-            </div>
-            
-            <div class="loading" id="loading">计算集群正处理高维链演化，请稍候...</div>
-            <div id="error" style="color:var(--brand-red); font-size:0.85rem; margin-top:10px; display:none;"></div>
-        </div>
-
-        <div class="panel" id="resultsPanel" style="display:none;">
-            <div class="panel-header"><h2>平稳分布矩估计分析</h2></div>
-            <div class="metrics-grid">
-                <div class="metric-card"><div class="metric-label">有效总样本</div><div class="metric-value" id="nSamples">-</div></div>
-                <div class="metric-card"><div class="metric-label">E(X) 均值</div><div class="metric-value" style="color:var(--brand-blue);" id="meanX">-</div></div>
-                <div class="metric-card"><div class="metric-label">E(Y) 均值</div><div class="metric-value" style="color:var(--brand-pink);" id="meanY">-</div></div>
-                <div class="metric-card"><div class="metric-label">E(Z) 均值</div><div class="metric-value" style="color:#af52de;" id="meanZ">-</div></div>
-                <div class="metric-card"><div class="metric-label">ESS 采样效能 (X)</div><div class="metric-value" id="essX">-</div></div>
-                <div class="metric-card"><div class="metric-label">ESS 采样效能 (Y)</div><div class="metric-value" id="essY">-</div></div>
-            </div>
-        </div>
-
-        <div class="panel" id="chartsPanel" style="display:none;">
-            <div class="panel-header"><h2>多维诊断诊断视图</h2></div>
-            <div class="tabs">
-                <div class="tab active" onclick="showVariable('X')">维度 X 探针</div>
-                <div class="tab" onclick="showVariable('Y')">维度 Y 探针</div>
-                <div class="tab" onclick="showVariable('Z')">维度 Z 探针</div>
-            </div>
-            <div class="chart-grid">
-                <div class="chart-box"><canvas id="trajectoryChart"></canvas></div>
-                <div class="chart-box"><canvas id="histogramChart"></canvas></div>
-                <div class="chart-box"><canvas id="autocorrChart"></canvas></div>
-                <div class="chart-box"><canvas id="jointChart"></canvas></div>
-            </div>
-            <div class="chart-box" style="margin-top:24px;">
-                <canvas id="allTrajectoriesChart"></canvas>
-            </div>
-        </div>
-
+                <div class="panel reveal">
+                    <div class="panel-head">
+                        <h2>智能解读与变量表</h2>
+                        <button class="btn" onclick="loadHistoryList()">刷新历史</button>
+                    </div>
+                    <div class="insight-list" id="insights">
+                        <div class="insight">运行一次采样后，这里会显示质量判断、相关性和下一步建议。</div>
+                    </div>
+                    <div class="advanced-grid">
+                        <div class="diagnostic-table">
+                            <h3>变量诊断表</h3>
+                            <table>
+                                <thead><tr><th>变量</th><th>均值</th><th>标准差</th><th>5%</th><th>95%</th><th>ESS</th></tr></thead>
+                                <tbody id="diagTable"><tr><td colspan="6">暂无样本</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="diagnostic-table">
+                            <h3>历史快照</h3>
+                            <div class="history-list" id="historyList"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
     </main>
+
+    <footer class="footer">Gibbs Studio 使用 Flask、NumPy 与 Chart.js 构建。GitHub 链接会在新标签页打开。</footer>
 
     <script>
         let currentData = null;
-        let charts = {};
         let currentVar = 'X';
+        let charts = {};
         let presets = {};
+        let distributions = {};
 
-        // 商业化图表默认配置
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.font.size = 11;
-        Chart.defaults.color = '#9499a0';
+        Chart.defaults.font.family = 'Inter, Microsoft YaHei, sans-serif';
+        Chart.defaults.color = '#647084';
+        Chart.defaults.borderColor = 'rgba(140,150,165,.25)';
         Chart.defaults.plugins.legend.labels.usePointStyle = true;
-        Chart.defaults.plugins.legend.labels.boxWidth = 8;
-        Chart.defaults.borderColor = 'rgba(227, 229, 231, 0.5)';
 
-        // ================= 业务逻辑函数 =================
+        // ==================== RIPPLE EFFECT FOR BUTTONS ====================
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn');
+            if (!btn) return;
+
+            const rect = btn.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+
+            btn.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+
+        // ==================== BUTTON HOVER GLOW TRACKING ====================
+        document.addEventListener('mousemove', function(e) {
+            const btn = e.target.closest('.btn');
+            if (!btn) return;
+
+            const rect = btn.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
+            const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
+            btn.style.setProperty('--x', x + '%');
+            btn.style.setProperty('--y', y + '%');
+        });
+
+        // ==================== NAVBAR SCROLL EFFECT ====================
+        const navbar = document.getElementById('navbar');
+        let lastScroll = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.scrollY;
+            if (currentScroll > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            lastScroll = currentScroll;
+        }, { passive: true });
+
+        // ==================== INTERSECTION OBSERVER FOR REVEAL ====================
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -40px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all reveal elements after DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+
+        // ==================== LOADING OVERLAY CONTROL ====================
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // ==================== STATUS WITH SMOOTH TRANSITION ====================
+        function setStatus(message, type = '') {
+            const status = document.getElementById('status');
+            status.style.opacity = '0';
+            status.style.transform = 'translateX(-8px)';
+            
+            setTimeout(() => {
+                status.textContent = message;
+                status.className = `status ${type}`;
+                status.style.opacity = '1';
+                status.style.transform = 'translateX(0)';
+            }, 150);
+        }
+
+        async function bootstrap() {
+            drawKvField();
+            await Promise.all([loadDistributions(), loadPresets()]);
+            showDistributionHint();
+            renderEmptyMatrix();
+        }
+
+        function drawKvField() {
+            const canvas = document.getElementById('kvCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = 0;
+            let height = 0;
+            let tick = 0;
+
+            function resize() {
+                width = canvas.width = canvas.offsetWidth * devicePixelRatio;
+                height = canvas.height = canvas.offsetHeight * devicePixelRatio;
+                ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+            }
+
+            function frame() {
+                const w = canvas.offsetWidth;
+                const h = canvas.offsetHeight;
+                ctx.clearRect(0, 0, w, h);
+                ctx.globalAlpha = 0.8;
+                for (let y = 42; y < h; y += 36) {
+                    ctx.beginPath();
+                    for (let x = 0; x <= w; x += 18) {
+                        const wave = Math.sin((x * 0.018) + tick + y * 0.015) * 8;
+                        const yy = y + wave;
+                        if (x === 0) ctx.moveTo(x, yy);
+                        else ctx.lineTo(x, yy);
+                    }
+                    ctx.strokeStyle = y % 72 === 0 ? 'rgba(15,132,216,.22)' : 'rgba(0,168,143,.16)';
+                    ctx.lineWidth = y % 72 === 0 ? 1.4 : 1;
+                    ctx.stroke();
+                }
+                for (let x = 30; x < w; x += 58) {
+                    const y = h * 0.2 + (Math.sin(tick + x * 0.022) + 1) * h * 0.28;
+                    ctx.fillStyle = x % 116 === 0 ? 'rgba(230,93,134,.42)' : 'rgba(15,132,216,.34)';
+                    ctx.fillRect(x, y, 3, 3);
+                }
+                tick += 0.012;
+                requestAnimationFrame(frame);
+            }
+
+            resize();
+            window.addEventListener('resize', resize);
+            if (!matchMedia('(prefers-reduced-motion: reduce)').matches) frame();
+        }
+
+        async function loadDistributions() {
+            try {
+                const response = await fetch('/api/distributions');
+                distributions = await response.json();
+                ['dist_x', 'dist_y', 'dist_z'].forEach((id) => {
+                    const select = document.getElementById(id);
+                    select.innerHTML = '';
+                    Object.entries(distributions).forEach(([key, dist]) => {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = dist.label;
+                        select.appendChild(option);
+                    });
+                });
+                document.getElementById('dist_x').value = 'normal';
+                document.getElementById('dist_y').value = 'normal';
+                document.getElementById('dist_z').value = 'normal';
+                const strip = document.getElementById('distStrip');
+                strip.innerHTML = '';
+                Object.values(distributions).forEach((dist) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'dist-chip';
+                    chip.textContent = dist.label.split(' ')[0];
+                    strip.appendChild(chip);
+                });
+            } catch (e) {
+                distributions = {
+                    normal: { label: 'Normal', description: '正态分布' },
+                    uniform: { label: 'Uniform', description: '均匀分布' }
+                };
+            }
+        }
 
         async function loadPresets() {
             try {
                 const response = await fetch('/api/presets');
                 presets = await response.json();
                 const select = document.getElementById('preset-select');
-                select.innerHTML = '<option value="">选取官方模型模板...</option>';
+                select.innerHTML = '<option value="">选择模型预设...</option>';
                 Object.entries(presets).forEach(([key, preset]) => {
                     const option = document.createElement('option');
-                    option.value = key; option.textContent = preset.name;
+                    option.value = key;
+                    option.textContent = preset.name;
                     select.appendChild(option);
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error('Failed to load presets:', e);
+            }
         }
 
         function applyPreset() {
-            const presetKey = document.getElementById('preset-select').value;
-            if (!presetKey || !presets[presetKey]) return;
-            const p = presets[presetKey];
+            const key = document.getElementById('preset-select').value;
+            if (!key || !presets[key]) return;
+            const p = presets[key];
             const mapping = {
-                'param_x0': p.param_x[0], 'param_x1': p.param_x[1], 'std_x': p.param_x[2],
-                'param_y0': p.param_y[0], 'param_y1': p.param_y[1], 'std_y': p.param_y[2],
-                'param_z0': p.param_z[0], 'param_z1': p.param_z[1], 'std_z': p.param_z[2],
-                'init_x': p.init_values[0], 'init_y': p.init_values[1], 'init_z': p.init_values[2],
-                'iterations': p.iterations, 'burn_in': p.burn_in, 'thinning': p.thinning
+                param_x0: p.param_x[0], param_x1: p.param_x[1], std_x: p.param_x[2],
+                param_y0: p.param_y[0], param_y1: p.param_y[1], std_y: p.param_y[2],
+                param_z0: p.param_z[0], param_z1: p.param_z[1], std_z: p.param_z[2],
+                init_x: p.init_values[0], init_y: p.init_values[1], init_z: p.init_values[2],
+                iterations: p.iterations, burn_in: p.burn_in, thinning: p.thinning,
+                random_seed: p.random_seed ?? ''
             };
-            Object.entries(mapping).forEach(([id, val]) => document.getElementById(id).value = val);
+            Object.entries(mapping).forEach(([id, value]) => document.getElementById(id).value = value);
+            ['dist_x', 'dist_y', 'dist_z'].forEach((id, index) => document.getElementById(id).value = p.dist_types[index]);
+            setStatus(p.note || '已应用预设。', 'ok');
+            showDistributionHint();
+        }
+
+        function getNumber(id, fallback) {
+            const value = Number(document.getElementById(id).value);
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function getParams() {
+            const seedRaw = document.getElementById('random_seed').value;
+            return {
+                param_x: [getNumber('param_x0', 0.5), getNumber('param_x1', 0.3), getNumber('std_x', 0.8)],
+                param_y: [getNumber('param_y0', 0.5), getNumber('param_y1', 0.4), getNumber('std_y', 0.7)],
+                param_z: [getNumber('param_z0', 0.3), getNumber('param_z1', 0.4), getNumber('std_z', 0.9)],
+                init_values: [getNumber('init_x', 1), getNumber('init_y', 2), getNumber('init_z', 2)],
+                iterations: Math.round(getNumber('iterations', 5000)),
+                burn_in: Math.round(getNumber('burn_in', 500)),
+                thinning: Math.round(getNumber('thinning', 1)),
+                random_seed: seedRaw === '' ? null : Math.round(Number(seedRaw)),
+                dist_types: ['dist_x', 'dist_y', 'dist_z'].map((id) => document.getElementById(id).value),
+                save: true
+            };
         }
 
         async function generateData() {
-            document.getElementById('loading').classList.add('active');
-            document.getElementById('error').style.display = 'none';
+            setStatus('正在采样与计算诊断...', '');
+            showLoading();
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(getParams())
                 });
-                if (!response.ok) throw new Error('采样引擎响应异常');
-                currentData = await response.json();
-                displayResults(currentData);
-            } catch (e) {
-                document.getElementById('error').textContent = '⚠️ 失败: ' + e.message;
-                document.getElementById('error').style.display = 'block';
-            } finally {
-                document.getElementById('loading').classList.remove('active');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '采样失败');
+                currentData = data;
+                hideLoading();
+                displayResults(data);
+                setStatus(`完成：${data.n_samples.toLocaleString()} 个样本，${data.saved_file || '未保存文件'}。`, 'ok');
+                loadHistoryList();
+            } catch (error) {
+                hideLoading();
+                setStatus(`失败：${error.message}`, 'error');
             }
         }
-
-        function getParams() {
-            return {
-                param_x: [parseFloat(document.getElementById('param_x0').value), parseFloat(document.getElementById('param_x1').value), parseFloat(document.getElementById('std_x').value)],
-                param_y: [parseFloat(document.getElementById('param_y0').value), parseFloat(document.getElementById('param_y1').value), parseFloat(document.getElementById('std_y').value)],
-                param_z: [parseFloat(document.getElementById('param_z0').value), parseFloat(document.getElementById('param_z1').value), parseFloat(document.getElementById('std_z').value)],
-                init_values: [parseFloat(document.getElementById('init_x').value), parseFloat(document.getElementById('init_y').value), parseFloat(document.getElementById('init_z').value)],
-                iterations: parseInt(document.getElementById('iterations').value),
-                burn_in: parseInt(document.getElementById('burn_in').value),
-                thinning: parseInt(document.getElementById('thinning').value),
-                random_seed: null,
-                dist_types: [document.getElementById('dist_x').value, document.getElementById('dist_y').value, document.getElementById('dist_z').value]
-            };
-        }
-
-        // --- 同步之前的降采样逻辑以降低CPU负载 ---
 
         function displayResults(data) {
-            document.getElementById('resultsPanel').style.display = 'block';
-            document.getElementById('chartsPanel').style.display = 'block';
             document.getElementById('nSamples').textContent = data.n_samples.toLocaleString();
-            document.getElementById('meanX').textContent = data.statistics.mean[0].toFixed(4);
-            document.getElementById('meanY').textContent = data.statistics.mean[1].toFixed(4);
-            document.getElementById('meanZ').textContent = data.statistics.mean[2].toFixed(4);
-            if (data.effective_sample_sizes) {
-                document.getElementById('essX').textContent = Math.round(data.effective_sample_sizes[0]).toLocaleString();
-                document.getElementById('essY').textContent = Math.round(data.effective_sample_sizes[1]).toLocaleString();
-            }
+            document.getElementById('quality').textContent = data.insights?.quality || '-';
+            const corr = data.insights?.strongest_correlation;
+            document.getElementById('strongCorr').textContent = corr ? `${corr.pair} ${corr.value.toFixed(2)}` : '-';
+            document.getElementById('minEss').textContent = Math.min(...data.effective_sample_sizes).toLocaleString();
+
+            // Animate stat values
+            animateValue('nSamples', data.n_samples);
+
+            renderInsights(data);
+            renderCorrelationMatrix(data.statistics.correlation_matrix);
+            renderDiagnosticTable(data);
             createCharts(data.samples, data.diagnostics);
         }
 
-        function showVariable(varName) {
-            currentVar = varName;
-            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.includes(varName)));
-            updateCharts(currentData.samples, currentData.diagnostics);
+        function animateValue(id, endValue) {
+            const el = document.getElementById(id);
+            const start = 0;
+            const duration = 800;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // ease out cubic
+                el.textContent = Math.floor(eased * endValue).toLocaleString();
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }
+
+        function renderInsights(data) {
+            const container = document.getElementById('insights');
+            container.innerHTML = '';
+            const means = data.statistics.mean.map((v) => v.toFixed(3)).join(' / ');
+            const q05 = data.statistics.q05.map((v) => v.toFixed(3)).join(' / ');
+            const q95 = data.statistics.q95.map((v) => v.toFixed(3)).join(' / ');
+            [`均值 X/Y/Z：${means}`, `5%-95% 区间：${q05} 到 ${q95}`, ...(data.insights?.suggestions || [])].forEach((text, index) => {
+                const item = document.createElement('div');
+                item.className = 'insight';
+                item.textContent = text;
+                item.style.animationDelay = `${index * 80}ms`;
+                container.appendChild(item);
+            });
+        }
+
+        function renderEmptyMatrix() {
+            const grid = document.getElementById('corrMatrix');
+            grid.innerHTML = '';
+            ['', 'X', 'Y', 'Z', 'X', '-', '-', '-', 'Y', '-', '-', '-', 'Z', '-', '-', '-'].forEach((label, index) => {
+                const cell = document.createElement('div');
+                cell.className = `matrix-cell ${index < 4 || index % 4 === 0 ? 'matrix-label' : ''}`;
+                cell.textContent = label;
+                grid.appendChild(cell);
+            });
+        }
+
+        function renderCorrelationMatrix(matrix) {
+            const grid = document.getElementById('corrMatrix');
+            const names = ['X', 'Y', 'Z'];
+            grid.innerHTML = '';
+            ['', ...names].forEach((label) => appendMatrixCell(grid, label, true));
+            names.forEach((rowName, i) => {
+                appendMatrixCell(grid, rowName, true);
+                names.forEach((_, j) => {
+                    const value = Number(matrix?.[i]?.[j] ?? 0);
+                    appendMatrixCell(grid, value.toFixed(2), false, value);
+                });
+            });
+            const strongest = currentData?.insights?.strongest_correlation;
+            document.getElementById('matrixHint').textContent = strongest ? `${strongest.pair}: ${strongest.value.toFixed(2)}` : '已更新';
+        }
+
+        function appendMatrixCell(grid, label, isLabel, value = 0) {
+            const cell = document.createElement('div');
+            cell.className = `matrix-cell ${isLabel ? 'matrix-label' : ''}`;
+            if (!isLabel) {
+                const strength = Math.min(1, Math.abs(value));
+                const hue = value >= 0 ? '15,132,216' : '230,93,134';
+                cell.style.background = `rgba(${hue}, ${0.12 + strength * 0.58})`;
+            }
+            cell.textContent = label;
+            grid.appendChild(cell);
+        }
+
+        function renderDiagnosticTable(data) {
+            const body = document.getElementById('diagTable');
+            const names = ['X', 'Y', 'Z'];
+            body.innerHTML = '';
+            data.diagnostics.forEach((diag, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${names[index]}</td><td>${diag.mean.toFixed(3)}</td><td>${diag.std.toFixed(3)}</td><td>${diag.q05.toFixed(3)}</td><td>${diag.q95.toFixed(3)}</td><td>${diag.ess.toLocaleString()}</td>`;
+                row.style.animationDelay = `${index * 60}ms`;
+                body.appendChild(row);
+            });
+        }
+
+        function showVariable(name) {
+            currentVar = name;
+            document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.var === name));
+            if (currentData) updateVariableCharts(currentData.samples, currentData.diagnostics);
         }
 
         function createCharts(samples, diagnostics) {
-            Object.values(charts).forEach(c => c.destroy());
+            Object.values(charts).forEach((chart) => chart.destroy());
             charts = {};
-            updateCharts(samples, diagnostics);
+            updateVariableCharts(samples, diagnostics);
             createAllTrajectoriesChart(samples);
+            createDiagnosticRadar(diagnostics);
         }
 
-        function updateCharts(samples, diagnostics) {
+        function downsample(values, limit = 1200) {
+            const step = Math.max(1, Math.floor(values.length / limit));
+            return values.filter((_, index) => index % step === 0);
+        }
+
+        function updateVariableCharts(samples, diagnostics) {
+            ['trajectory', 'histogram', 'autocorr', 'joint'].forEach((key) => {
+                if (charts[key]) charts[key].destroy();
+            });
+
             const varIndex = {X: 0, Y: 1, Z: 2}[currentVar];
-            const varData = samples.map(s => s[varIndex]);
-            const themeColors = { X: '#00aeec', Y: '#ff6699', Z: '#af52de' };
-            const activeColor = themeColors[currentVar];
+            const names = ['X', 'Y', 'Z'];
+            const colors = ['#0f84d8', '#e65d86', '#00a88f'];
+            const color = colors[varIndex];
+            const values = samples.map((row) => row[varIndex]);
+            const series = downsample(values);
+            const step = Math.max(1, Math.floor(values.length / series.length));
 
-            if (charts.trajectory) charts.trajectory.destroy();
-            if (charts.histogram) charts.histogram.destroy();
-            if (charts.autocorr) charts.autocorr.destroy();
-            if (charts.joint) charts.joint.destroy();
-
-            // 1. 轨迹图（降采样1000点）
-            const trajStep = Math.max(1, Math.floor(varData.length / 1000));
-            const sampledTraj = varData.filter((_, i) => i % trajStep === 0);
             charts.trajectory = new Chart(document.getElementById('trajectoryChart'), {
                 type: 'line',
                 data: {
-                    labels: sampledTraj.map((_, i) => i * trajStep),
-                    datasets: [{ label: `Chain Trace (${currentVar})`, data: sampledTraj, borderColor: activeColor, borderWidth: 1, pointRadius: 0, fill: false }]
+                    labels: series.map((_, index) => index * step),
+                    datasets: [{label: `${currentVar} 轨迹`, data: series, borderColor: color, backgroundColor: color + '22', borderWidth: 1.6, pointRadius: 0, fill: true}]
                 },
-                options: { responsive: true, maintainAspectRatio: false, animation: false }
+                options: chartOptions('采样轨迹')
             });
 
-            // 2. 直方图
-            const binCount = 30;
-            const min = Math.min(...varData), max = Math.max(...varData);
-            const binWidth = (max - min) / binCount;
-            const histData = Array(binCount).fill(0);
-            varData.forEach(v => { const idx = Math.min(Math.floor((v - min) / binWidth), binCount - 1); if(idx >= 0) histData[idx]++; });
+            const binCount = 36;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const width = Math.max((max - min) / binCount, 1e-9);
+            const bins = Array(binCount).fill(0);
+            values.forEach((value) => {
+                const index = Math.min(Math.floor((value - min) / width), binCount - 1);
+                bins[Math.max(0, index)] += 1;
+            });
             charts.histogram = new Chart(document.getElementById('histogramChart'), {
                 type: 'bar',
                 data: {
-                    labels: Array.from({length: binCount}, (_, i) => (min + i * binWidth).toFixed(1)),
-                    datasets: [{ label: 'Density', data: histData.map(h => h / (varData.length * binWidth)), backgroundColor: activeColor + '33', borderColor: activeColor, borderWidth: 1 }]
+                    labels: bins.map((_, index) => (min + index * width).toFixed(2)),
+                    datasets: [{label: `${currentVar} 密度`, data: bins.map((n) => n / values.length), backgroundColor: color + '55', borderColor: color, borderWidth: 1}]
                 },
-                options: { responsive: true, maintainAspectRatio: false, animation: false }
+                options: chartOptions('边际分布')
             });
 
-            // 3. ACF
-            const acf = diagnostics && diagnostics[varIndex] ? diagnostics[varIndex].autocorrelation.slice(0, 30) : [];
+            const acf = diagnostics[varIndex]?.autocorrelation?.slice(0, 36) || [];
             charts.autocorr = new Chart(document.getElementById('autocorrChart'), {
                 type: 'bar',
-                data: {
-                    labels: acf.map((_, i) => i),
-                    datasets: [{ label: 'ACF', data: acf, backgroundColor: activeColor, barPercentage: 0.5 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, animation: false }
+                data: { labels: acf.map((_, index) => index), datasets: [{label: 'ACF', data: acf, backgroundColor: color}] },
+                options: chartOptions('自相关衰减')
             });
 
-            // 4. 联合散点图
-            const otherIdx = [0, 1, 2].filter(i => i !== varIndex)[0];
-            const scatStep = Math.max(1, Math.floor(varData.length / 800));
-            const scatData = varData.filter((_, i) => i % scatStep === 0).map((v, i) => ({x: v, y: samples.map(s => s[otherIdx])[i * scatStep]}));
+            const otherIndex = [0, 1, 2].find((index) => index !== varIndex);
+            const scatterStep = Math.max(1, Math.floor(samples.length / 900));
+            const scatter = samples.filter((_, index) => index % scatterStep === 0).map((row) => ({x: row[varIndex], y: row[otherIndex]}));
             charts.joint = new Chart(document.getElementById('jointChart'), {
                 type: 'scatter',
-                data: { datasets: [{ label: `${currentVar} vs ${['X','Y','Z'][otherIdx]}`, data: scatData, backgroundColor: activeColor + '44' }] },
-                options: { responsive: true, maintainAspectRatio: false, animation: false }
+                data: {datasets: [{label: `${currentVar} vs ${names[otherIndex]}`, data: scatter, backgroundColor: color + '66', pointRadius: 2.6}]},
+                options: chartOptions('联合散点')
             });
         }
 
         function createAllTrajectoriesChart(samples) {
-            const ctx = document.getElementById('allTrajectoriesChart').getContext('2d');
-            const step = Math.max(1, Math.floor(samples.length / 1000));
-            if (charts.allTrajectories) charts.allTrajectories.destroy();
-            charts.allTrajectories = new Chart(ctx, {
+            const sampled = downsample(samples, 1200);
+            const step = Math.max(1, Math.floor(samples.length / sampled.length));
+            charts.allTrajectories = new Chart(document.getElementById('allTrajectoriesChart'), {
                 type: 'line',
                 data: {
-                    labels: Array.from({length: 1000}, (_, i) => i * step),
+                    labels: sampled.map((_, index) => index * step),
                     datasets: [
-                        { label: 'X', data: samples.map(s => s[0]).filter((_, i) => i % step === 0), borderColor: '#00aeec', borderWidth: 1, pointRadius: 0 },
-                        { label: 'Y', data: samples.map(s => s[1]).filter((_, i) => i % step === 0), borderColor: '#ff6699', borderWidth: 1, pointRadius: 0 },
-                        { label: 'Z', data: samples.map(s => s[2]).filter((_, i) => i % step === 0), borderColor: '#af52de', borderWidth: 1, pointRadius: 0 }
+                        {label: 'X', data: sampled.map((row) => row[0]), borderColor: '#0f84d8', borderWidth: 1.4, pointRadius: 0},
+                        {label: 'Y', data: sampled.map((row) => row[1]), borderColor: '#e65d86', borderWidth: 1.4, pointRadius: 0},
+                        {label: 'Z', data: sampled.map((row) => row[2]), borderColor: '#00a88f', borderWidth: 1.4, pointRadius: 0}
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, animation: false }
+                options: chartOptions('三变量链路总览')
             });
         }
 
-        document.addEventListener('DOMContentLoaded', loadPresets);
+        function createDiagnosticRadar(diagnostics) {
+            if (charts.radar) charts.radar.destroy();
+            const maxEss = Math.max(...diagnostics.map((d) => d.ess), 1);
+            charts.radar = new Chart(document.getElementById('diagnosticRadar'), {
+                type: 'radar',
+                data: {
+                    labels: ['ESS', '低波动', '区间集中', '低自相关'],
+                    datasets: diagnostics.map((diag, index) => {
+                        const colors = ['#0f84d8', '#e65d86', '#00a88f'];
+                        const acf1 = Math.abs(diag.autocorrelation?.[1] || 0);
+                        const spread = Math.abs(diag.q95 - diag.q05) || 1;
+                        return {
+                            label: ['X', 'Y', 'Z'][index],
+                            data: [
+                                diag.ess / maxEss,
+                                1 / (1 + diag.std),
+                                1 / (1 + spread),
+                                Math.max(0, 1 - acf1)
+                            ],
+                            borderColor: colors[index],
+                            backgroundColor: colors[index] + '22',
+                            pointRadius: 2
+                        };
+                    })
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {title: {display: true, text: '诊断雷达', align: 'start', color: '#10141f', font: {size: 14, weight: '800'}}, legend: {position: 'bottom'}},
+                    scales: {r: {min: 0, max: 1, ticks: {display: false}}}
+                }
+            });
+        }
+
+        function chartOptions(title) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {duration: 400, easing: 'easeOutQuart'},
+                plugins: {
+                    title: {display: true, text: title, align: 'start', color: '#10141f', font: {size: 14, weight: '800'}},
+                    legend: {position: 'bottom'}
+                },
+                scales: {
+                    x: {ticks: {maxTicksLimit: 8}},
+                    y: {ticks: {maxTicksLimit: 7}}
+                }
+            };
+        }
+
+        async function loadExistingData() {
+            setStatus('正在载入最新结果...', '');
+            try {
+                const response = await fetch('/api/load_json');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '没有可载入的数据');
+                currentData = data;
+                displayResults(data);
+                setStatus('已载入最新结果。', 'ok');
+            } catch (error) {
+                setStatus(`载入失败：${error.message}`, 'error');
+            }
+        }
+
+        async function loadHistoryList() {
+            try {
+                const response = await fetch('/api/list_files');
+                const data = await response.json();
+                const list = document.getElementById('historyList');
+                list.innerHTML = '';
+                (data.files || []).slice(0, 12).forEach((file) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `<span>${file}</span><button class="btn" type="button">载入</button>`;
+                    item.querySelector('button').onclick = () => loadHistoryFile(file);
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                setStatus(`历史读取失败：${error.message}`, 'error');
+            }
+        }
+
+        async function loadHistoryFile(file) {
+            setStatus(`正在载入 ${file}...`, '');
+            try {
+                const response = await fetch(`/api/load_file/${encodeURIComponent(file)}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '文件不可用');
+                currentData = data;
+                displayResults(data);
+                setStatus(`已载入 ${file}。`, 'ok');
+            } catch (error) {
+                setStatus(`载入失败：${error.message}`, 'error');
+            }
+        }
+
+        async function exportToCSV() {
+            if (!currentData?.samples?.length) {
+                setStatus('请先生成或载入样本。', 'error');
+                return;
+            }
+            const response = await fetch('/api/export_csv', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({samples: currentData.samples})
+            });
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'gibbs_samples.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+            setStatus('CSV 已导出。', 'ok');
+        }
+
+        function randomizeModel() {
+            const distKeys = Object.keys(distributions);
+            if (!distKeys.length) return;
+            ['dist_x', 'dist_y', 'dist_z'].forEach((id) => {
+                document.getElementById(id).value = distKeys[Math.floor(Math.random() * distKeys.length)];
+            });
+            ['param_x0', 'param_x1', 'param_y0', 'param_y1', 'param_z0', 'param_z1'].forEach((id) => {
+                document.getElementById(id).value = (Math.random() * 0.8 - 0.15).toFixed(2);
+            });
+            ['std_x', 'std_y', 'std_z'].forEach((id) => {
+                document.getElementById(id).value = (0.35 + Math.random() * 1.1).toFixed(2);
+            });
+            document.getElementById('random_seed').value = Math.floor(Math.random() * 10000);
+            showDistributionHint();
+            setStatus('已生成一个随机混合模型，可直接采样。', 'ok');
+        }
+
+        function showDistributionHint() {
+            const selected = ['dist_x', 'dist_y', 'dist_z'].map((id) => document.getElementById(id).value);
+            const text = selected.map((key, index) => `${['X', 'Y', 'Z'][index]}：${distributions[key]?.description || key}`).join(' ');
+            document.getElementById('distHint').textContent = text || '选择分布后这里会显示建模提示。';
+        }
+
+        function resetView() {
+            Object.values(charts).forEach((chart) => chart.destroy());
+            charts = {};
+            currentData = null;
+            ['nSamples', 'quality', 'strongCorr', 'minEss'].forEach((id) => document.getElementById(id).textContent = '-');
+            document.getElementById('insights').innerHTML = '<div class="insight">运行一次采样后，这里会显示质量判断、相关性和下一步建议。</div>';
+            document.getElementById('diagTable').innerHTML = '<tr><td colspan="6">暂无样本</td></tr>';
+            document.getElementById('matrixHint').textContent = '等待样本';
+            renderEmptyMatrix();
+            setStatus('图表已清空。', 'ok');
+        }
+
+        document.addEventListener('DOMContentLoaded', bootstrap);
     </script>
 </body>
 </html>
